@@ -11,7 +11,7 @@ interface DecadesClientProps {
 }
 
 export function DecadesClient({ initialReleases, totalItems: initialTotal }: DecadesClientProps) {
-  const { releases: contextReleases, startSync, isSyncing, progress } = useDiscogsSync();
+  const { releases: contextReleases, startSync, isSyncing, progress, masterYears, isSyncingMasters, masterSyncedCount, masterTotalCount } = useDiscogsSync();
 
   // Instant hydration fallback
   const releases = contextReleases.length > 0 ? contextReleases : initialReleases;
@@ -20,7 +20,7 @@ export function DecadesClient({ initialReleases, totalItems: initialTotal }: Dec
     startSync(initialReleases, initialTotal);
   }, [initialReleases, initialTotal, startSync]);
 
-  const { decadeData, totalMapped, peakDecade } = analyzeDecades(releases);
+  const { decadeData, totalMapped, peakDecade } = analyzeDecades(releases, masterYears);
 
   const mapDecade = (
     id: string, label: string, icon: string, iconClass: string, extras?: { translucentBgClass?: string }
@@ -64,6 +64,11 @@ export function DecadesClient({ initialReleases, totalItems: initialTotal }: Dec
           <div className="text-right flex flex-col items-end">
             {isSyncing && (
               <span className="font-headline font-bold uppercase text-[10px] text-primary/60 tracking-widest mb-2 animate-pulse">Syncing... {progress}%</span>
+            )}
+            {isSyncingMasters && (
+              <span className="font-headline font-bold uppercase text-[10px] text-secondary/60 tracking-widest mb-2 animate-pulse">
+                Enriching origins... {masterSyncedCount}/{masterTotalCount}
+              </span>
             )}
             <div className="text-right">
               <span className="font-headline font-bold text-4xl text-secondary">{totalMapped}</span>

@@ -1,4 +1,5 @@
 import { getOAuthHeader } from './oauth';
+import { enqueueDiscogsRequest } from './rateLimiter';
 
 export interface DiscogsAuth {
   token: string;
@@ -109,13 +110,15 @@ function getUsername(auth?: DiscogsAuth) {
   return auth?.username || DEFAULT_USERNAME;
 }
 
-// Backend Rate Limiter: State persists during the lifetime of the Next.js process (dev server)
-let lastApiRequestTime = 0;
-const MIN_REQUEST_INTERVAL = 1100; // ~55 requests/min for safety
+/** Stable key used to identify which per-user queue to use. */
+export function getUserKey(auth?: DiscogsAuth): string {
+  return auth?.username || DEFAULT_USERNAME || 'guest';
+}
 
 export async function fetchCollection(auth?: DiscogsAuth, page: number = 1, perPage: number = 100, force: boolean = false): Promise<CollectionResponse | null> {
   const username = getUsername(auth);
   const headers = getAuthHeaders(auth);
+  const userKey = getUserKey(auth);
   
   if (!headers.Authorization) {
     console.error("Missing authentication credentials.");
@@ -132,14 +135,14 @@ export async function fetchCollection(auth?: DiscogsAuth, page: number = 1, perP
     fetchOptions.next = { revalidate: 3600 };
   }
 
-  const res = await fetch(`${API_URL}/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}`, fetchOptions);
-
-  if (!res.ok) {
-    console.error(`Failed to fetch from Discogs: ${res.statusText}`);
-    return null;
-  }
-
-  return res.json();
+  return enqueueDiscogsRequest(userKey, async () => {
+    const res = await fetch(`${API_URL}/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}`, fetchOptions);
+    if (!res.ok) {
+      console.error(`Failed to fetch collection from Discogs: ${res.statusText}`);
+      return null;
+    }
+    return res.json();
+  });
 }
 
 /**
@@ -179,47 +182,63 @@ export async function fetchAllUserReleases(auth?: DiscogsAuth): Promise<DiscogsR
  */
 export async function fetchReleaseDetails(id: number, auth?: DiscogsAuth): Promise<ReleaseDetails | null> {
   const headers = getAuthHeaders(auth);
+  const userKey = getUserKey(auth);
   if (!headers.Authorization) return null;
 
-  const startTime = Date.now();
-  const res = await fetch(`${API_URL}/releases/${id}`, {
-    headers,
-    next: { revalidate: 86400 } // Cache for 24h as these stats don't change rapidly
-  });
+  return enqueueDiscogsRequest(userKey, async () => {
+    const res = await fetch(`${API_URL}/releases/${id}`, {
+      headers,
+      next: { revalidate: 86400 } // Cache for 24h
+    });
 
-  // Rate Limiting Logic:
-  // If the request took > 200ms, it was likely an API "MISS" (network call).
-  // If it was < 200ms, it was a Cache "HIT", so we don't penalize the rate limiter.
-  const duration = Date.now() - startTime;
-  if (duration > 200) {
-    const timeSinceLast = Date.now() - lastApiRequestTime;
-    if (timeSinceLast < MIN_REQUEST_INTERVAL) {
-      const waitTime = MIN_REQUEST_INTERVAL - timeSinceLast;
-      await new Promise(r => setTimeout(r, waitTime));
+    if (!res.ok) {
+      console.warn(`Failed to fetch release ${id}: ${res.statusText}`);
+      return null;
     }
-    lastApiRequestTime = Date.now();
-  }
 
-  if (!res.ok) {
-    console.warn(`Failed to fetch release ${id}: ${res.statusText}`);
-    return null;
-  }
-
-  const data = await res.json();
-  const scrubbed: ReleaseDetails = {
-    id: data.id,
-    lowest_price: data.lowest_price,
-    country: data.country || "Unknown",
-    community: {
-      have: data.community?.have || 0,
-      want: data.community?.want || 0,
-      rating: {
-        count: data.community?.rating?.count || 0,
-        average: data.community?.rating?.average || 0
+    const data = await res.json();
+    const scrubbed: ReleaseDetails = {
+      id: data.id,
+      lowest_price: data.lowest_price,
+      country: data.country || "Unknown",
+      community: {
+        have: data.community?.have || 0,
+        want: data.community?.want || 0,
+        rating: {
+          count: data.community?.rating?.count || 0,
+          average: data.community?.rating?.average || 0
+        }
       }
+    };
+    return scrubbed;
+  });
+}
+
+/**
+ * Fetches the original release year for a master release.
+ * Results should be cached aggressively — original years never change.
+ */
+export async function fetchMasterYear(masterId: number, auth?: DiscogsAuth): Promise<number | null> {
+  const headers = getAuthHeaders(auth);
+  const userKey = getUserKey(auth);
+  if (!headers.Authorization) return null;
+
+  return enqueueDiscogsRequest(userKey, async () => {
+    const res = await fetch(`${API_URL}/masters/${masterId}`, {
+      headers,
+      next: { revalidate: 86400 * 30 }, // Cache for 30 days — originals never change
+    });
+
+    if (!res.ok) {
+      if (res.status !== 404) {
+        console.warn(`[Discogs] Failed to fetch master ${masterId}: ${res.status} ${res.statusText}`);
+      }
+      return null;
     }
-  };
-  return scrubbed;
+
+    const data = await res.json();
+    return data.year ?? null;
+  });
 }
 
 /**
@@ -227,27 +246,30 @@ export async function fetchReleaseDetails(id: number, auth?: DiscogsAuth): Promi
  */
 export async function fetchPriceSuggestions(id: number, auth?: DiscogsAuth): Promise<PriceSuggestions | null> {
   const headers = getAuthHeaders(auth);
+  const userKey = getUserKey(auth);
   if (!headers.Authorization) return null;
 
-  try {
-    const res = await fetch(`${API_URL}/marketplace/price_suggestions/${id}`, {
-      headers,
-      cache: 'no-store'
-    });
+  return enqueueDiscogsRequest(userKey, async () => {
+    try {
+      const res = await fetch(`${API_URL}/marketplace/price_suggestions/${id}`, {
+        headers,
+        cache: 'no-store'
+      });
 
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      console.warn(`Failed to fetch price suggestions for ${id}: ${res.statusText}`);
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        console.warn(`Failed to fetch price suggestions for ${id}: ${res.statusText}`);
+        return null;
+      }
+
+      const data = await res.json();
+      console.log(`[Discogs API] Price suggestions for ${id}:`, Object.keys(data));
+      return data;
+    } catch (error) {
+      console.error('Price suggestions fetch error:', error);
       return null;
     }
-
-    const data = await res.json();
-    console.log(`[Discogs API] Price suggestions for ${id}:`, Object.keys(data));
-    return data;
-  } catch (error) {
-    console.error('Price suggestions fetch error:', error);
-    return null;
-  }
+  });
 }
 
 /**
@@ -273,7 +295,8 @@ export function identifyVaultCandidates(releases: DiscogsRelease[]): DiscogsRele
     .slice(0, 40); // Rate limit safety buffer
 }
 
-export function analyzeDecades(releases: DiscogsRelease[]) {
+// masterYears: map of master_id -> original release year, fetched via /masters/{id}
+export function analyzeDecades(releases: DiscogsRelease[], masterYears: Record<number, number> = {}) {
   const decades: Record<string, { count: number; images: string[]; releases: DiscogsRelease[] }> = {
     '1950s': { count: 0, images: [], releases: [] },
     '1960s': { count: 0, images: [], releases: [] },
@@ -288,7 +311,9 @@ export function analyzeDecades(releases: DiscogsRelease[]) {
   let totalMapped = 0;
 
   for (const r of releases) {
-    const year = r.basic_information.year;
+    const masterId = r.basic_information.master_id;
+    // Prefer original year from master record; fall back to pressing year
+    const year = (masterId && masterId > 0 && masterYears[masterId]) || r.basic_information.year;
     if (!year || year === 0) continue; // Unknown
     const cover = r.basic_information.cover_image;
 
@@ -427,16 +452,19 @@ export interface CollectionValue {
 export async function fetchCollectionValue(auth?: DiscogsAuth): Promise<CollectionValue | null> {
   const headers = getAuthHeaders(auth);
   const username = getUsername(auth);
+  const userKey = getUserKey(auth);
   if (!headers.Authorization) return null;
 
-  const res = await fetch(`https://api.discogs.com/users/${username}/collection/value`, {
-     headers,
-     next: { revalidate: 3600 }
-  });
+  return enqueueDiscogsRequest(userKey, async () => {
+    const res = await fetch(`${API_URL}/users/${username}/collection/value`, {
+      headers,
+      next: { revalidate: 3600 }
+    });
 
-  if (!res.ok) {
-    console.error(`Failed to fetch collection value: ${res.statusText}`);
-    return null;
-  }
-  return res.json();
+    if (!res.ok) {
+      console.error(`Failed to fetch collection value: ${res.statusText}`);
+      return null;
+    }
+    return res.json();
+  });
 }

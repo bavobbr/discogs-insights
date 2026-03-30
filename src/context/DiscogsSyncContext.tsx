@@ -13,6 +13,10 @@ interface DiscogsSyncContextType {
   isSyncingVault: boolean;
   vaultScannedCount: number;
   vaultTotalCount: number;
+  masterYears: Record<number, number>; // master_id -> original release year
+  isSyncingMasters: boolean;
+  masterSyncedCount: number;
+  masterTotalCount: number;
   user: { username: string } | null;
   startSync: (initialReleases?: DiscogsRelease[], totalCount?: number, force?: boolean) => void;
   syncVaultData: (candidateIds: number[]) => Promise<void>;
@@ -31,16 +35,22 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const [isSyncingVault, setIsSyncingVault] = useState(false);
   const [vaultScannedCount, setVaultScannedCount] = useState(0);
   const [vaultTotalCount, setVaultTotalCount] = useState(0);
+  const [masterYears, setMasterYears] = useState<Record<number, number>>({});
+  const [isSyncingMasters, setIsSyncingMasters] = useState(false);
+  const [masterSyncedCount, setMasterSyncedCount] = useState(0);
+  const [masterTotalCount, setMasterTotalCount] = useState(0);
   const [user, setUser] = useState<{ username: string } | null>(null);
   
   const syncInProgress = useRef(false);
   const syncCompleted = useRef(false);
   const vaultSyncInProgress = useRef(false);
+  const masterSyncInProgress = useRef(false);
   const isInitialized = useRef(false);
 
   // Constants for localStorage keys
   const STORAGE_KEY_RELEASES = 'vinyl_pulse_releases';
   const STORAGE_KEY_VAULT = 'vinyl_pulse_vault_metadata';
+  const STORAGE_KEY_MASTER_YEARS = 'vinyl_pulse_master_years';
   const STORAGE_KEY_USER = 'vinyl_pulse_user';
 
   // State Recovery on Mount
@@ -70,6 +80,18 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
           console.error("Failed to restore vault metadata:", e);
         }
       }
+
+      const savedMasterYears = localStorage.getItem(STORAGE_KEY_MASTER_YEARS);
+      if (savedMasterYears) {
+        try {
+          const parsed = JSON.parse(savedMasterYears);
+          setMasterYears(parsed);
+          setMasterSyncedCount(Object.keys(parsed).length);
+          console.log(`[Sync] Restored ${Object.keys(parsed).length} master years from storage.`);
+        } catch (e) {
+          console.error("Failed to restore master years:", e);
+        }
+      }
       
       // Check Authentication
       fetch('/api/auth/me')
@@ -87,12 +109,15 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
               // Clear state
               setReleases([]);
               setVaultMetadata({});
+              setMasterYears({});
               setSyncedCount(0);
               setVaultScannedCount(0);
+              setMasterSyncedCount(0);
               
               // Clear storage
               localStorage.removeItem(STORAGE_KEY_RELEASES);
               localStorage.removeItem(STORAGE_KEY_VAULT);
+              localStorage.removeItem(STORAGE_KEY_MASTER_YEARS);
             }
             
             setUser(newUser);
@@ -103,8 +128,10 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
               console.log(`[Sync] Session ended. Resetting to Guest mode.`);
               setReleases([]);
               setVaultMetadata({});
+              setMasterYears({});
               localStorage.removeItem(STORAGE_KEY_RELEASES);
               localStorage.removeItem(STORAGE_KEY_VAULT);
+              localStorage.removeItem(STORAGE_KEY_MASTER_YEARS);
               localStorage.removeItem(STORAGE_KEY_USER);
             }
             setUser(null);
@@ -139,6 +166,16 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     }
   }, [vaultMetadata]);
 
+  React.useEffect(() => {
+    if (isInitialized.current && Object.keys(masterYears).length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY_MASTER_YEARS, JSON.stringify(masterYears));
+      } catch (e) {
+        console.error("Failed to save master years to localStorage:", e);
+      }
+    }
+  }, [masterYears]);
+
   // Derive syncedCount and progress from releases state
   React.useEffect(() => {
     setSyncedCount(releases.length);
@@ -146,6 +183,61 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       setProgress(Math.min(100, Math.round((releases.length / totalItems) * 100)));
     }
   }, [releases.length, totalItems]);
+
+  const startMasterEnrichment = useCallback(async (releasesToEnrich: DiscogsRelease[], force: boolean = false) => {
+    if (masterSyncInProgress.current) return;
+
+    // Collect unique master IDs that we haven't fetched yet (or all if force)
+    const uniqueMasterIds = [...new Set(
+      releasesToEnrich
+        .map(r => r.basic_information.master_id)
+        .filter((id): id is number => !!id && id > 0)
+    )];
+
+    const toFetch = force
+      ? uniqueMasterIds
+      : uniqueMasterIds.filter(id => !(id in masterYears));
+
+    if (toFetch.length === 0) {
+      console.log('[Masters] All master years already cached.');
+      return;
+    }
+
+    console.log(`[Masters] Starting enrichment for ${toFetch.length} masters...`);
+    masterSyncInProgress.current = true;
+    setIsSyncingMasters(true);
+    setMasterSyncedCount(0);
+    setMasterTotalCount(toFetch.length);
+
+    // No client-side delay needed — the server-side queue in rateLimiter.ts
+    // serializes all Discogs API calls at 1200ms intervals per user.
+    // We just fire all requests; they'll queue server-side and resolve in order.
+
+    try {
+      for (const masterId of toFetch) {
+        const res = await fetch(`/api/discogs/master/${masterId}`);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.year) {
+            setMasterYears(prev => ({ ...prev, [masterId]: data.year }));
+          }
+        }
+        // Note: 429s should no longer occur since the server queue throttles for us.
+        // If they do (e.g. multi-instance), the queue will handle retry implicitly on the next run.
+
+        setMasterSyncedCount(prev => prev + 1);
+        // Tiny yield to keep the UI responsive between state updates
+        await new Promise(r => setTimeout(r, 10));
+      }
+    } catch (error) {
+      console.error('[Masters] Enrichment error:', error);
+    } finally {
+      setIsSyncingMasters(false);
+      masterSyncInProgress.current = false;
+      console.log('[Masters] Enrichment complete.');
+    }
+  }, [masterYears]);
 
   const startSync = useCallback(async (initialReleases: DiscogsRelease[] = [], totalCount: number = 0, force: boolean = false) => {
     if ((syncInProgress.current || syncCompleted.current) && !force) return;
@@ -159,8 +251,11 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       setProgress(0);
       setVaultMetadata({});
       setVaultScannedCount(0);
+      setMasterYears({});
+      setMasterSyncedCount(0);
       localStorage.removeItem(STORAGE_KEY_RELEASES);
       localStorage.removeItem(STORAGE_KEY_VAULT);
+      localStorage.removeItem(STORAGE_KEY_MASTER_YEARS);
       syncCompleted.current = false;
     }
 
@@ -224,7 +319,15 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       syncCompleted.current = true;
       setProgress(100);
     }
-  }, [totalItems]);
+
+    // After collection sync, kick off master year enrichment in the background
+    // We read from the ref to get the latest releases without needing it as a dep
+    setReleases(currentReleases => {
+      // Fire and forget — runs in background after render
+      setTimeout(() => startMasterEnrichment(currentReleases, force), 500);
+      return currentReleases; // no change, just reading
+    });
+  }, [totalItems, startMasterEnrichment]);
 
   const syncVaultData = useCallback(async (candidateIds: number[]) => {
     if (vaultSyncInProgress.current) return;
@@ -271,6 +374,10 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       isSyncingVault,
       vaultScannedCount,
       vaultTotalCount,
+      masterYears,
+      isSyncingMasters,
+      masterSyncedCount,
+      masterTotalCount,
       user,
       startSync,
       syncVaultData,
