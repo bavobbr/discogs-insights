@@ -74,13 +74,24 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   // Automated Persistence
   React.useEffect(() => {
     if (isInitialized.current && releases.length > 0) {
-      localStorage.setItem(STORAGE_KEY_RELEASES, JSON.stringify(releases));
+      try {
+        localStorage.setItem(STORAGE_KEY_RELEASES, JSON.stringify(releases));
+      } catch (e) {
+        console.error("Failed to save releases to localStorage:", e);
+      }
     }
   }, [releases]);
 
   React.useEffect(() => {
     if (isInitialized.current && Object.keys(vaultMetadata).length > 0) {
-      localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(vaultMetadata));
+      try {
+        localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(vaultMetadata));
+      } catch (e) {
+        console.error("Failed to save vault metadata to localStorage:", e);
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          console.error("Quota exceeded! We recommend clicking 'Force Refresh' to clean old high-size data.");
+        }
+      }
     }
   }, [vaultMetadata]);
 

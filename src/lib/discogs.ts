@@ -177,7 +177,20 @@ export async function fetchReleaseDetails(id: number): Promise<ReleaseDetails | 
     return null;
   }
 
-  return res.json();
+  const data = await res.json();
+  const scrubbed: ReleaseDetails = {
+    id: data.id,
+    lowest_price: data.lowest_price,
+    community: {
+      have: data.community?.have || 0,
+      want: data.community?.want || 0,
+      rating: {
+        count: data.community?.rating?.count || 0,
+        average: data.community?.rating?.average || 0
+      }
+    }
+  };
+  return scrubbed;
 }
 
 /**
