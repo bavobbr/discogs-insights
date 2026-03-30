@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
@@ -80,8 +81,14 @@ export function TopAppBar() {
             </button>
           </div>
 
-          <div className="w-8 h-8 rounded-full bg-surface-container-high border border-[#E5E2E1]/10 overflow-hidden ring-2 ring-primary/20">
-            <img alt="User profile" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Lwc-8GQwwO7hwn0JMmKNILiApT4Lnf94t_fZzizR2L9YhJFlm1DVfcrg-cD69fMcuzSvhyegv29_89jXUBrrjHHCisR_08mx9eJ2Y1nDYX3mXqhQ6apWFZ5quYyYTyq5bJPhzpuEt1xbpVKh6eEKnQL8OzLn9_7sj2-5KF2e6lrj79wkMj7LgneNoC_7R7-fpAw0RdLpgLazQCaxKF4e6Bouf1rkFLF5wkv6M1T04siRxSViwuGwqI9jUgeq6DWTrb9DPaG4" />
+          <div className="w-8 h-8 rounded-full bg-surface-container-high border border-[#E5E2E1]/10 overflow-hidden ring-2 ring-primary/20 relative">
+            <Image 
+              alt="User profile" 
+              className="object-cover" 
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Lwc-8GQwwO7hwn0JMmKNILiApT4Lnf94t_fZzizR2L9YhJFlm1DVfcrg-cD69fMcuzSvhyegv29_89jXUBrrjHHCisR_08mx9eJ2Y1nDYX3mXqhQ6apWFZ5quYyYTyq5bJPhzpuEt1xbpVKh6eEKnQL8OzLn9_7sj2-5KF2e6lrj79wkMj7LgneNoC_7R7-fpAw0RdLpgLazQCaxKF4e6Bouf1rkFLF5wkv6M1T04siRxSViwuGwqI9jUgeq6DWTrb9DPaG4" 
+              fill
+              sizes="32px"
+            />
           </div>
         </div>
       </div>

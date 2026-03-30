@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import Image from 'next/image';
 import { DiscogsRelease } from '@/lib/discogs';
 import { CrateDiggingOverlay } from '@/components/ui/CrateDiggingOverlay';
 
@@ -44,12 +45,15 @@ export function DecadeHeatmap({ data }: { data: DecadeData[] }) {
     return (
       <div className={`absolute inset-0 grid ${gridCols} gap-0`}>
         {visibleImages.map((img, idx) => (
-          <img
-            key={idx}
-            alt={`${decade.id} mosaic tile`}
-            className="w-full h-full object-cover opacity-60 mix-blend-luminosity hover:mix-blend-normal hover:opacity-100 transition-all duration-500"
-            src={img}
-          />
+          <div key={idx} className="relative w-full h-full">
+            <Image
+              alt={`${decade.id} mosaic tile`}
+              className="object-cover opacity-60 mix-blend-luminosity hover:mix-blend-normal hover:opacity-100 transition-all duration-500"
+              src={img}
+              fill
+              sizes="(max-width: 768px) 33vw, 25vw"
+            />
+          </div>
         ))}
       </div>
     );

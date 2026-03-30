@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { DiscogsRelease } from '@/lib/discogs';
 
 export interface CrateDiggingOverlayProps {
@@ -123,10 +124,13 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
             }}
           >
             {currentRelease?.basic_information.cover_image ? (
-              <img
+              <Image
                 src={currentRelease.basic_information.cover_image}
                 alt="Album cover"
-                className="w-full h-full object-cover"
+                className="object-cover"
+                fill
+                sizes="(max-width: 768px) 100vw, 512px"
+                priority
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-surface-variant/20">
@@ -144,10 +148,12 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
               className={`absolute inset-0 bg-surface shadow-xl rounded-sm overflow-hidden z-[-1] transition-transform duration-300 
                 ${isFlipping ? 'scale-100' : 'scale-[0.98] translate-y-1'}`}
             >
-              <img
+              <Image
                 src={releases[nextImgIndex]?.basic_information.cover_image}
                 alt="Album cover"
-                className="w-full h-full object-cover opacity-80"
+                className="object-cover opacity-80"
+                fill
+                sizes="(max-width: 768px) 100vw, 512px"
               />
             </div>
           )}

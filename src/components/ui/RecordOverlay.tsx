@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { LightweightRelease } from './RecentGrid';
 
 export function RecordOverlay({ release, onClose }: { release: LightweightRelease, onClose: () => void }) {
@@ -45,10 +46,13 @@ export function RecordOverlay({ release, onClose }: { release: LightweightReleas
         <div className="w-full md:w-1/2 relative flex flex-col items-center justify-center bg-[#090909]">
           <div className="w-full aspect-square relative group">
             {release.imageUrl ? (
-              <img 
+              <Image 
                 src={release.imageUrl} 
                 alt={release.title} 
-                className="w-full h-full object-cover object-center"
+                className="object-cover object-center"
+                fill
+                sizes="(max-width: 768px) 100vw, 450px"
+                priority
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-surface-container">

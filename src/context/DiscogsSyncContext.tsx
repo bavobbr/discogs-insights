@@ -105,7 +105,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       syncCompleted.current = true;
       setProgress(100);
     }
-  }, []);
+  }, [totalItems]);
 
   return (
     <DiscogsSyncContext.Provider value={{

@@ -23,7 +23,7 @@ export function DecadesClient({ initialReleases, totalItems: initialTotal }: Dec
   const { decadeData, totalMapped, peakDecade } = analyzeDecades(releases);
 
   const mapDecade = (
-    id: string, label: string, icon: string, iconClass: string, extras?: any
+    id: string, label: string, icon: string, iconClass: string, extras?: { translucentBgClass?: string }
   ) => {
     const obj = decadeData[id] || { count: 0, images: [], releases: [] };
     return {
