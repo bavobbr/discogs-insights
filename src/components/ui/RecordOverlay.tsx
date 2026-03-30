@@ -3,16 +3,36 @@
 import React from 'react';
 import Image from 'next/image';
 import { LightweightRelease } from './RecentGrid';
+import { PriceSuggestions } from '@/lib/discogs';
 
 export function RecordOverlay({ release, onClose }: { release: LightweightRelease, onClose: () => void }) {
+  const [suggestions, setSuggestions] = React.useState<PriceSuggestions | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = React.useState(false);
+
   // Lock body scroll when overlay is open to prevent background scrolling
   React.useEffect(() => {
     const originalStyle = window.getComputedStyle(document.body).overflow;
     document.body.style.overflow = 'hidden';
+    
+    // Fetch price suggestions in parallel
+    if (release?.releaseId) {
+      setLoadingSuggestions(true);
+      fetch(`/api/discogs/price-suggestions/${release.releaseId}`)
+        .then(res => res.json())
+        .then(data => {
+          setSuggestions(data);
+          setLoadingSuggestions(false);
+        })
+        .catch(err => {
+          console.error("Failed to fetch suggestions:", err);
+          setLoadingSuggestions(false);
+        });
+    }
+
     return () => {
       document.body.style.overflow = originalStyle;
     };
-  }, []);
+  }, [release?.releaseId]);
 
   if (!release) return null;
 
@@ -109,6 +129,31 @@ export function RecordOverlay({ release, onClose }: { release: LightweightReleas
                   {s}
                 </span>
               ))}
+            </div>
+          </div>
+          <div className="mb-10 p-4 rounded-xl bg-surface-container-low/40 border border-white/5 backdrop-blur-sm">
+            <p className="font-headline font-bold uppercase text-[10px] text-primary/60 tracking-widest mb-4">MARKET INSIGHTS (SUGGESTED)</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col">
+                <span className="font-headline font-bold text-[8px] text-on-surface-variant/40 tracking-widest uppercase mb-1">Mint (M)</span>
+                {loadingSuggestions ? (
+                  <div className="h-6 w-16 bg-white/5 animate-pulse rounded-sm" />
+                ) : (
+                  <span className="font-headline font-black text-xl text-primary">
+                    {suggestions?.["Mint (M)"] ? `$${suggestions["Mint (M)"].value.toFixed(2)}` : 'N/A'}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <span className="font-headline font-bold text-[8px] text-on-surface-variant/40 tracking-widest uppercase mb-1">Near Mint (NM)</span>
+                {loadingSuggestions ? (
+                  <div className="h-6 w-16 bg-white/5 animate-pulse rounded-sm" />
+                ) : (
+                  <span className="font-headline font-black text-xl text-secondary">
+                    {suggestions?.["Near Mint (NM or M-)"] ? `$${suggestions["Near Mint (NM or M-)"].value.toFixed(2)}` : 'N/A'}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

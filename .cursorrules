@@ -1,0 +1,4 @@
+# AI Agent Rules
+
+- **Do NOT auto-commit changes**: AI agents should never commit code changes without explicit user approval for each commit.
+- **Do NOT auto-push changes**: AI agents should never push to remote repositories automatically.

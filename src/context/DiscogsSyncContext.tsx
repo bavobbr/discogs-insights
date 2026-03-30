@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { DiscogsRelease } from '@/lib/discogs';
+import { DiscogsRelease, ReleaseDetails } from '@/lib/discogs';
 
 interface DiscogsSyncContextType {
   releases: DiscogsRelease[];
@@ -9,7 +9,12 @@ interface DiscogsSyncContextType {
   progress: number; // 0 to 100
   totalItems: number;
   syncedCount: number;
+  vaultMetadata: Record<number, ReleaseDetails>;
+  isSyncingVault: boolean;
+  vaultScannedCount: number;
+  vaultTotalCount: number;
   startSync: (initialReleases?: DiscogsRelease[], totalCount?: number, force?: boolean) => void;
+  syncVaultData: (candidateIds: number[]) => Promise<void>;
 }
 
 const DiscogsSyncContext = createContext<DiscogsSyncContextType | undefined>(undefined);
@@ -20,9 +25,14 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const [progress, setProgress] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
   const [syncedCount, setSyncedCount] = useState(0);
+  const [vaultMetadata, setVaultMetadata] = useState<Record<number, ReleaseDetails>>({});
+  const [isSyncingVault, setIsSyncingVault] = useState(false);
+  const [vaultScannedCount, setVaultScannedCount] = useState(0);
+  const [vaultTotalCount, setVaultTotalCount] = useState(0);
   
   const syncInProgress = useRef(false);
   const syncCompleted = useRef(false);
+  const vaultSyncInProgress = useRef(false);
 
   // Derive syncedCount and progress from releases state
   React.useEffect(() => {
@@ -107,6 +117,40 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     }
   }, [totalItems]);
 
+  const syncVaultData = useCallback(async (candidateIds: number[]) => {
+    if (vaultSyncInProgress.current) return;
+    vaultSyncInProgress.current = true;
+    setIsSyncingVault(true);
+    setVaultScannedCount(0);
+    setVaultTotalCount(candidateIds.length);
+
+    try {
+      for (const id of candidateIds) {
+        // Increment progress even if cached
+        setVaultScannedCount(prev => prev + 1);
+
+        // Skip if already have it in local state
+        if (vaultMetadata[id]) continue;
+
+        const res = await fetch(`/api/discogs/release/${id}`);
+        if (res.ok) {
+          const details = await res.json();
+          setVaultMetadata(prev => ({ ...prev, [id]: details }));
+        }
+        
+        // Stand back and let the backend handle the 1s rate limiter.
+        // We use a minimal delay (50ms) to allow the UI to process each arriving record
+        // without blocking the main thread.
+        await new Promise(r => setTimeout(r, 50));
+      }
+    } catch (error) {
+      console.error("Vault sync error:", error);
+    } finally {
+      setIsSyncingVault(false);
+      vaultSyncInProgress.current = false;
+    }
+  }, [vaultMetadata, isSyncingVault]);
+
   return (
     <DiscogsSyncContext.Provider value={{
       releases,
@@ -114,7 +158,12 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       progress,
       totalItems,
       syncedCount,
-      startSync
+      vaultMetadata,
+      isSyncingVault,
+      vaultScannedCount,
+      vaultTotalCount,
+      startSync,
+      syncVaultData
     }}>
       {children}
     </DiscogsSyncContext.Provider>

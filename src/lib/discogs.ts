@@ -40,6 +40,26 @@ export interface DiscogsRelease {
   };
 }
 
+export interface PriceSuggestions {
+  [condition: string]: {
+    currency: string;
+    value: number;
+  };
+}
+
+export interface ReleaseDetails {
+  id: number;
+  community: {
+    have: number;
+    want: number;
+    rating: {
+      count: number;
+      average: number;
+    };
+  };
+  lowest_price: number | null;
+}
+
 export interface CollectionResponse {
   pagination: {
     page: number;
@@ -56,6 +76,10 @@ export interface CollectionResponse {
 
 const DISCOGS_USERNAME = process.env.DISCOGS_USERNAME || 'bavobbr'; // Fallback or loaded from env
 const API_URL = 'https://api.discogs.com';
+
+// Backend Rate Limiter: State persists during the lifetime of the Next.js process (dev server)
+let lastApiRequestTime = 0;
+const MIN_REQUEST_INTERVAL = 1100; // ~55 requests/min for safety
 
 export async function fetchCollection(page: number = 1, perPage: number = 100, force: boolean = false): Promise<CollectionResponse | null> {
   const token = process.env.DISCOGS_PAT;
@@ -117,6 +141,97 @@ export async function fetchAllUserReleases(): Promise<DiscogsRelease[]> {
   }
 
   return allReleases;
+}
+
+/**
+ * Fetches extended metadata for a specific release to get community stats and pricing.
+ */
+export async function fetchReleaseDetails(id: number): Promise<ReleaseDetails | null> {
+  const token = process.env.DISCOGS_PAT;
+  if (!token) return null;
+
+  const startTime = Date.now();
+  const res = await fetch(`${API_URL}/releases/${id}`, {
+    headers: {
+      'Authorization': `Discogs token=${token}`,
+      'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
+    },
+    next: { revalidate: 86400 } // Cache for 24h as these stats don't change rapidly
+  });
+
+  // Rate Limiting Logic:
+  // If the request took > 200ms, it was likely an API "MISS" (network call).
+  // If it was < 200ms, it was a Cache "HIT", so we don't penalize the rate limiter.
+  const duration = Date.now() - startTime;
+  if (duration > 200) {
+    const timeSinceLast = Date.now() - lastApiRequestTime;
+    if (timeSinceLast < MIN_REQUEST_INTERVAL) {
+      const waitTime = MIN_REQUEST_INTERVAL - timeSinceLast;
+      await new Promise(r => setTimeout(r, waitTime));
+    }
+    lastApiRequestTime = Date.now();
+  }
+
+  if (!res.ok) {
+    console.warn(`Failed to fetch release ${id}: ${res.statusText}`);
+    return null;
+  }
+
+  return res.json();
+}
+
+/**
+ * Fetches price suggestions based on marketplace history for different conditions.
+ */
+export async function fetchPriceSuggestions(id: number): Promise<PriceSuggestions | null> {
+  const token = process.env.DISCOGS_PAT;
+  if (!token) return null;
+
+  try {
+    const res = await fetch(`${API_URL}/marketplace/price_suggestions/${id}`, {
+      headers: {
+        'Authorization': `Discogs token=${token}`,
+        'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
+      },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      console.warn(`Failed to fetch price suggestions for ${id}: ${res.statusText}`);
+      return null;
+    }
+
+    const data = await res.json();
+    console.log(`[Discogs API] Price suggestions for ${id}:`, Object.keys(data));
+    return data;
+  } catch (error) {
+    console.error('Price suggestions fetch error:', error);
+    return null;
+  }
+}
+
+/**
+ * Heuristically identifies potential "Vault" items from a collection
+ * based on user ratings and physical format descriptions.
+ */
+export function identifyVaultCandidates(releases: DiscogsRelease[]): DiscogsRelease[] {
+  return [...releases]
+    .filter(r => {
+      const isFiveStar = r.rating === 5;
+      const isSpecialFormat = r.basic_information.formats?.some(f => 
+        f.descriptions?.some(d => 
+          ["Limited Edition", "Numbered", "Box Set", "Special Edition", "Promo", "White Label"].includes(d)
+        )
+      );
+      return isFiveStar || isSpecialFormat;
+    })
+    .sort((a, b) => {
+      // Prioritize 5-star items, then by year (older might be rarer)
+      if (b.rating !== a.rating) return b.rating - a.rating;
+      return (a.basic_information.year || 0) - (b.basic_information.year || 0);
+    })
+    .slice(0, 40); // Rate limit safety buffer
 }
 
 export function analyzeDecades(releases: DiscogsRelease[]) {

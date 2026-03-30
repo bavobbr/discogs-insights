@@ -24,6 +24,8 @@ export function TopAppBar() {
       hoverClass = "hover:text-[#76D6D5] hover:bg-[#76D6D5]/10 hover:shadow-[0_0_15px_rgba(118,214,213,0.15)]";
     } else if (colorCode === 'yellow') {
       hoverClass = "hover:text-[#E5C158] hover:bg-[#E5C158]/10 hover:shadow-[0_0_15px_rgba(229,193,88,0.15)]";
+    } else if (colorCode === 'purple') {
+      hoverClass = "hover:text-[#A855F7] hover:bg-[#A855F7]/10 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)]";
     }
 
     const baseClass = "px-5 py-2 rounded-full transition-all duration-300 font-headline font-bold text-[10px] uppercase tracking-[0.2em] active:scale-95 block";
@@ -54,6 +56,9 @@ export function TopAppBar() {
             </Link>
             <Link href="/decades" className={getDesktopNavClass("/decades", "yellow")}>
                Decade Heatmap
+            </Link>
+            <Link href="/vault" className={getDesktopNavClass("/vault", "purple")}>
+               The Vault
             </Link>
           </nav>
         </div>
@@ -137,6 +142,10 @@ export function BottomNavBar() {
       <Link href="/decades" className={getNavClass("/decades")}>
         <span className="material-symbols-outlined" style={getIconStyle("/decades")}>layers</span>
         <span className="font-headline font-bold uppercase text-[8px] tracking-widest">DECADES</span>
+      </Link>
+      <Link href="/vault" className={getNavClass("/vault")}>
+        <span className="material-symbols-outlined" style={getIconStyle("/vault")}>lock</span>
+        <span className="font-headline font-bold uppercase text-[8px] tracking-widest">THE VAULT</span>
       </Link>
     </nav>
   );
