@@ -31,11 +31,12 @@ export function VaultClient({ initialReleases }: VaultClientProps) {
 
   // Trigger a full collection scan for the vault
   useEffect(() => {
-    if (releases.length > 0 && !isSyncingVault && Object.keys(vaultMetadata).length < releases.length) {
+    // Only start the Vault sync once the main collection sync is finished (!isSyncing)
+    if (releases.length > 0 && !isSyncing && !isSyncingVault && Object.keys(vaultMetadata).length < releases.length) {
       const allIds = releases.map(r => r.id);
       syncVaultData(allIds);
     }
-  }, [releases, isSyncingVault, syncVaultData, vaultMetadata]);
+  }, [releases, isSyncing, isSyncingVault, syncVaultData, vaultMetadata]);
 
   // Derived Categories
   const grails = useMemo(() => {

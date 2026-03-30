@@ -33,6 +33,56 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const syncInProgress = useRef(false);
   const syncCompleted = useRef(false);
   const vaultSyncInProgress = useRef(false);
+  const isInitialized = useRef(false);
+
+  // Constants for localStorage keys
+  const STORAGE_KEY_RELEASES = 'vinyl_pulse_releases';
+  const STORAGE_KEY_VAULT = 'vinyl_pulse_vault_metadata';
+
+  // State Recovery on Mount
+  React.useEffect(() => {
+    if (!isInitialized.current) {
+      const savedReleases = localStorage.getItem(STORAGE_KEY_RELEASES);
+      const savedVault = localStorage.getItem(STORAGE_KEY_VAULT);
+      
+      if (savedReleases) {
+        try {
+          const parsed = JSON.parse(savedReleases);
+          setReleases(parsed);
+          setSyncedCount(parsed.length);
+          console.log(`[Sync] Restored ${parsed.length} releases from storage.`);
+        } catch (e) {
+          console.error("Failed to restore releases:", e);
+        }
+      }
+      
+      if (savedVault) {
+        try {
+          const parsed = JSON.parse(savedVault);
+          setVaultMetadata(parsed);
+          setVaultScannedCount(Object.keys(parsed).length);
+          console.log(`[Sync] Restored metadata for ${Object.keys(parsed).length} vault items.`);
+        } catch (e) {
+          console.error("Failed to restore vault metadata:", e);
+        }
+      }
+      
+      isInitialized.current = true;
+    }
+  }, []);
+
+  // Automated Persistence
+  React.useEffect(() => {
+    if (isInitialized.current && releases.length > 0) {
+      localStorage.setItem(STORAGE_KEY_RELEASES, JSON.stringify(releases));
+    }
+  }, [releases]);
+
+  React.useEffect(() => {
+    if (isInitialized.current && Object.keys(vaultMetadata).length > 0) {
+      localStorage.setItem(STORAGE_KEY_VAULT, JSON.stringify(vaultMetadata));
+    }
+  }, [vaultMetadata]);
 
   // Derive syncedCount and progress from releases state
   React.useEffect(() => {
@@ -52,6 +102,10 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       setReleases([]);
       setSyncedCount(0);
       setProgress(0);
+      setVaultMetadata({});
+      setVaultScannedCount(0);
+      localStorage.removeItem(STORAGE_KEY_RELEASES);
+      localStorage.removeItem(STORAGE_KEY_VAULT);
       syncCompleted.current = false;
     }
 

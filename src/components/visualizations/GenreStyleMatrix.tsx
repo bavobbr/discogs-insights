@@ -234,7 +234,7 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
                   className="transition-all duration-500 ease-out cursor-pointer"
                   style={{ 
                     opacity: isAnyHovered ? (isHovered ? 1 : 0.25) : 1,
-                    stroke: isHovered ? '#FFFFFF' : seg.color, // Flash white on focus
+                    stroke: seg.color, // Keep original segment color on focus
                     filter: isHovered ? 'brightness(1.5)' : 'none'
                   }}
                   onMouseEnter={() => setHoveredGenre(seg)}
