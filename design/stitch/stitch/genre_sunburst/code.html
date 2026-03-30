@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Vinyl Pulse - Genre Sunburst</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,700;1,6..72,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface": "#131313",
+              "tertiary-fixed": "#ffe179",
+              "secondary-fixed-dim": "#76d6d5",
+              "on-tertiary-container": "#4d3e00",
+              "surface-container-lowest": "#0e0e0e",
+              "inverse-surface": "#e5e2e1",
+              "on-background": "#e5e2e1",
+              "surface-tint": "#ffb59e",
+              "secondary-fixed": "#93f2f2",
+              "tertiary-fixed-dim": "#e6c443",
+              "surface-container-low": "#1c1b1b",
+              "outline": "#ac897e",
+              "on-surface": "#e5e2e1",
+              "surface-container-high": "#2a2a2a",
+              "on-secondary-fixed": "#002020",
+              "surface-container-highest": "#353534",
+              "on-error": "#690005",
+              "on-primary": "#5e1700",
+              "inverse-primary": "#ad3300",
+              "surface-dim": "#131313",
+              "on-error-container": "#ffdad6",
+              "on-secondary": "#003737",
+              "surface-bright": "#393939",
+              "secondary": "#76d6d5",
+              "on-tertiary-fixed": "#231b00",
+              "secondary-container": "#007f7f",
+              "background": "#131313",
+              "on-tertiary-fixed-variant": "#554500",
+              "primary-container": "#ff5717",
+              "error-container": "#93000a",
+              "inverse-on-surface": "#313030",
+              "on-surface-variant": "#e6beb2",
+              "on-secondary-container": "#ddfffe",
+              "tertiary": "#e6c443",
+              "error": "#ffb4ab",
+              "on-primary-fixed-variant": "#842500",
+              "on-primary-fixed": "#3a0b00",
+              "outline-variant": "#5c4037",
+              "surface-variant": "#353534",
+              "primary-fixed": "#ffdbd0",
+              "tertiary-container": "#c9a828",
+              "on-tertiary": "#3b2f00",
+              "on-primary-container": "#521300",
+              "on-secondary-fixed-variant": "#004f4f",
+              "primary": "#ffb59e",
+              "surface-container": "#201f1f",
+              "primary-fixed-dim": "#ffb59e"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Newsreader"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>.material-symbols-outlined {
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24
+    }
+.vinyl-grooves {
+    background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255, 255, 255, 0.03) 3px, transparent 4px)
+    }
+.grain-overlay {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    opacity: 0.03;
+    background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCfHubFC0uAyQ0ej-ntyNJLHujkl1lyveONhvoDAmhBeI8WYjxVuHJsD4WIa2xjP6X6DZGM4crmZO48pit781qZnPlQBc_lzoSGNYcWnpA33v7RZiL6Xy7IYjZrZJwDF0UE7PaN99L5ydrVu0dSK40hKRN8V-2Vh1XUbBkyisapsQhmCmyAnIxOXous50jpXa0eoc2k0faNcF6dY1Ja2Gzpwu0TntLsZ2RMY9_Sk_4TzbtlSYnhohdok3EwCtgxRXQhZQdPhSjE)
+    }</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden pb-24">
+<div class="grain-overlay"></div>
+<!-- Top Navigation -->
+<header class="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl flex justify-between items-center px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-[#E5E2E1] cursor-pointer">menu</span>
+<h1 class="text-xl font-black tracking-tighter text-[#E5E2E1] uppercase font-headline">VINYL PULSE</h1>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant/30">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a stylish person with modern glasses and creative attire in soft moody indoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChj34IyxqIovAz6PzDpXL3PDYRIbksbqPlo-YdU5qXanU3ri7G-s16AYDZ_YZJFStEWxJ-6wP54HyiMn4dmdOHic5rIl675iLxX7Hmn-ytqtNGW4QDHLRJGERL7ErSFdCfB1AB6JCIYJ-EEHzjd19rVq4JxUqn2DmezRaNRsO2SfP9p8DX7CU3KGxOP2y5RF_nJZ9fOWB5yGvlkNFLT5A86wSB5xYNIEeKAnoJjPO-eNiOLANzRUBpmrDy1Aqc3hvaxGdnB2Y_"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-md mx-auto">
+<!-- Header Section -->
+<section class="mb-12">
+<span class="font-label font-bold uppercase text-[10px] tracking-widest text-primary-container">Archivist Analytics</span>
+<h2 class="font-headline font-black text-4xl uppercase tracking-tighter leading-none mt-2">Genre Sunburst</h2>
+<p class="font-body text-lg italic text-on-surface-variant mt-2">A sonic breakdown of your current rotation.</p>
+</section>
+<!-- The Vinyl Sunburst Chart -->
+<section class="relative flex justify-center items-center py-8">
+<!-- Background Circular Tonal Layering -->
+<div class="absolute w-[340px] h-[340px] rounded-full bg-surface-container-lowest shadow-[0_0_60px_rgba(0,0,0,0.8)]"></div>
+<!-- Vinyl Record Body -->
+<div class="relative w-[300px] h-[300px] rounded-full bg-[#0E0E0E] flex items-center justify-center vinyl-grooves border border-white/5 shadow-2xl">
+<!-- SVG Sunburst / Radial Segments -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<!-- Jazz - International Orange -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#FF4F00" stroke-dasharray="100.5 251.2" stroke-width="20"></circle>
+<!-- Funk - Turntable Teal -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#008080" stroke-dasharray="62.8 251.2" stroke-dashoffset="-100.5" stroke-width="20"></circle>
+<!-- Soul - Mustard Yellow -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#FFDB58" stroke-dasharray="50.2 251.2" stroke-dashoffset="-163.3" stroke-width="20"></circle>
+<!-- Rock - Primary Fixed -->
+<circle cx="50" cy="50" fill="transparent" r="40" stroke="#FFB59E" stroke-dasharray="37.7 251.2" stroke-dashoffset="-213.5" stroke-width="20"></circle>
+</svg>
+<!-- Inner Center Label (The "Spindle") -->
+<div class="absolute w-[100px] h-[100px] rounded-full bg-[#E5E2E1] flex flex-col items-center justify-center shadow-inner border-4 border-[#0E0E0E] overflow-hidden">
+<!-- Paper Texture Simulation -->
+<div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/felt.png')]"></div>
+<span class="relative font-label font-black text-2xl text-on-background leading-none">1,240</span>
+<span class="relative font-label font-bold uppercase text-[8px] text-on-background tracking-tighter">Records</span>
+<div class="relative mt-1 w-2 h-2 rounded-full bg-[#0E0E0E]"></div>
+</div>
+</div>
+<!-- Legend Overlay - Floating Asymmetrically -->
+<div class="absolute -bottom-4 right-0 bg-surface-container-high p-4 border border-outline-variant/10 backdrop-blur-md">
+<div class="flex flex-col gap-2">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-[#FF4F00]"></div>
+<span class="font-label font-bold uppercase text-[10px] text-on-surface">Jazz (40%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-[#008080]"></div>
+<span class="font-label font-bold uppercase text-[10px] text-on-surface">Funk (25%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 bg-[#FFDB58]"></div>
+<span class="font-label font-bold uppercase text-[10px] text-on-surface">Soul (20%)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Data Visualization Cards -->
+<section class="mt-16 space-y-4">
+<h3 class="font-headline font-bold uppercase text-xs tracking-widest text-on-surface-variant mb-6">Top Vibrations</h3>
+<div class="bg-surface-container-low p-5 flex items-center justify-between group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex flex-col">
+<span class="font-label font-bold uppercase text-[10px] text-secondary">Dominant Genre</span>
+<span class="font-headline font-black text-2xl uppercase text-on-surface group-hover:text-primary transition-colors">Hard Bop Jazz</span>
+</div>
+<div class="text-right">
+<span class="font-label font-bold text-xl text-on-surface">496</span>
+<p class="font-body italic text-xs text-on-surface-variant leading-none">items</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 flex items-center justify-between group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex flex-col">
+<span class="font-label font-bold uppercase text-[10px] text-tertiary">Rising Rhythm</span>
+<span class="font-headline font-black text-2xl uppercase text-on-surface group-hover:text-primary transition-colors">Afro-Funk</span>
+</div>
+<div class="text-right">
+<span class="font-label font-bold text-xl text-on-surface">+12%</span>
+<p class="font-body italic text-xs text-on-surface-variant leading-none">this month</p>
+</div>
+</div>
+<div class="bg-surface-container-low p-5 flex items-center justify-between group hover:bg-surface-container-high transition-all duration-300">
+<div class="flex flex-col">
+<span class="font-label font-bold uppercase text-[10px] text-primary">Hidden Gem</span>
+<span class="font-headline font-black text-2xl uppercase text-on-surface group-hover:text-primary transition-colors">Psychedelic Soul</span>
+</div>
+<div class="text-right">
+<span class="font-label font-bold text-xl text-on-surface">84</span>
+<p class="font-body italic text-xs text-on-surface-variant leading-none">curated</p>
+</div>
+</div>
+</section>
+<!-- Subtle "Liner Note" Footer Info -->
+<footer class="mt-16 mb-24 opacity-40">
+<p class="font-body text-sm leading-relaxed border-t border-outline-variant/20 pt-6">
+                Chart generated 10.24.23. Based on high-fidelity playback data and manual crate cataloging. All percentages are weighted by playtime frequency.
+            </p>
+</footer>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 w-full flex justify-around items-center h-20 px-8 pb-safe bg-[#2A2A2A]/90 backdrop-blur-2xl z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-[#E5E2E1]/10">
+<a class="flex flex-col items-center gap-1 text-[#E5E2E1]/50 hover:text-[#FF4F00] transition-colors" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#76D6D5] scale-110 active:scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">pie_chart</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#E5E2E1]/50 hover:text-[#FF4F00] transition-colors" href="#">
+<span class="material-symbols-outlined">wb_sunny</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-[#E5E2E1]/50 hover:text-[#FF4F00] transition-colors" href="#">
+<span class="material-symbols-outlined">layers</span>
+</a>
+</nav>
+<!-- Navigation Drawer (Hidden by default, for demonstration) -->
+<div class="fixed inset-y-0 left-0 z-[60] flex flex-col p-8 bg-[#0E0E0E] rounded-r-sm h-full w-80 shadow-2xl shadow-black transform -translate-x-full transition-all duration-500" id="drawer">
+<div class="flex items-center gap-4 mb-12">
+<div class="w-12 h-12 rounded-full overflow-hidden">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Close up portrait of a stylish person with modern glasses and creative attire" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI9aDut6uC46M8_2CRrlaK-HRi1SgNVcTfeaAGMbJbdoVPJHjVlisGd9YPshH8ibaPVq51ZqPYLto73ufLNdjUtQWCynZbRqHEtGspoYswlqpZ7lZ1jQvegDWKPlAnM340X468x892FJcDqM-8Lg53JXewf9Lp4BE88v_JxKL3nphIhijWX6bw_Vuqd5CsP3O1dyluu1YQjrFGRNLLYwgHtWE2yBXo8zL6mkYzL5IucwlTNnvbdLitX0Gk15k1yHVfeyFYASh7"/>
+</div>
+<div>
+<h4 class="font-headline font-bold uppercase text-[#FF4F00] leading-none">Crate Digger</h4>
+<p class="font-body italic text-sm text-[#E5E2E1]">1,240 Records</p>
+</div>
+</div>
+<nav class="flex flex-col gap-6">
+<div class="flex items-center gap-4 text-[#E5E2E1] hover:text-[#FFB59E] hover:bg-[#2A2A2A] p-2 transition-all">
+<span class="material-symbols-outlined">library_music</span>
+<span class="font-headline font-bold uppercase">Collection</span>
+</div>
+<div class="flex items-center gap-4 text-[#E5E2E1] hover:text-[#FFB59E] hover:bg-[#2A2A2A] p-2 transition-all">
+<span class="material-symbols-outlined">favorite</span>
+<span class="font-headline font-bold uppercase">Wishlist</span>
+</div>
+<div class="flex items-center gap-4 text-[#E5E2E1] hover:text-[#FFB59E] hover:bg-[#2A2A2A] p-2 transition-all">
+<span class="material-symbols-outlined">person</span>
+<span class="font-headline font-bold uppercase">Artists</span>
+</div>
+<div class="flex items-center gap-4 text-[#E5E2E1] hover:text-[#FFB59E] hover:bg-[#2A2A2A] p-2 transition-all">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-headline font-bold uppercase">Settings</span>
+</div>
+</nav>
+</div>
+</body></html>

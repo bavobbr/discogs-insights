@@ -1,0 +1,8 @@
+# Configure Firebase App Hosting for Next.js
+
+# We do not need heavy custom configuration as App Hosting natively supports Next.js.
+# However, this file scaffolds future environment variables.
+
+env:
+  - variable: NEXT_PUBLIC_API_URL
+    value: /api

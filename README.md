@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Discogs Insights (Vinyl Pulse)
 
-## Getting Started
+A progressive web application (PWA) built to analyze, visualize, and explore your Discogs record collection.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Library**: [React 19](https://react.dev/) (Release Candidate)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Data Source**: [Discogs API](https://www.discogs.com/developers)
+- **Tooling**: ESLint, PostCSS
+
+## 📂 Project Structure
+
+The project follows a standard Next.js App Router structure with customized component and lib directories:
+
+```text
+├── design/                 # Design documentation and specifications
+├── public/                 # Static assets (fonts, icons, external files)
+└── src/
+    ├── app/                # Next.js App Router pages and layouts
+    │   ├── decades/        # "Decades" statistics page
+    │   ├── fonts/          # Custom local fonts
+    │   ├── pulse/          # "Pulse" visualization page
+    │   ├── globals.css     # Global styles and tailwind directives
+    │   ├── layout.tsx      # Root application layout
+    │   └── page.tsx        # Application homepage / dashboard
+    │
+    ├── components/         # Reusable React components
+    │   ├── layout/         # Layout components (e.g., Navigation)
+    │   ├── ui/             # Generic UI elements (e.g., CrateCard, RecentGrid)
+    │   └── visualizations/ # Data visualization components (DecadeHeatmap, GenreSunburst)
+    │
+    └── lib/                # Core utilities and data fetching
+        └── discogs.ts      # Discogs API wrapper and data processing logic
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Features overview
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Authentication & API Layer**: Integrates directly with Discogs API (`lib/discogs.ts`) to fetch your collection data.
+- **Visualizations**: 
+  - Dynamic **Decade Heatmap** using album cover artwork.
+  - Interactive **Genre Sunburst** chart for exploring collection composition.
+- **Pages**:
+  - `Dashboard`: Latest additions and overview.
+  - `Pulse`: Deep dive into specific statistics and "Top Vibrations".
+  - `Decades`: Distribution of music by release decade and finding the "Golden Era".
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 💻 Getting Started
 
-## Learn More
+1. **Install Dependencies**
+   ```bash
+   npm install
+   ```
 
-To learn more about Next.js, take a look at the following resources:
+2. **Environment Variables**
+   Make sure to configure your `.env.local` with the necessary Discogs API keys.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3. **Run the Development Server**
+   ```bash
+   npm run dev
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. **View the App**
+   Open [http://localhost:3000](http://localhost:3000) with your browser to see the results.
