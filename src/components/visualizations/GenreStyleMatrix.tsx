@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { GenreStyleData } from '@/lib/discogs';
+import { GenreStyleData, DiscogsRelease } from '@/lib/discogs';
 import { CrateDiggingOverlay } from '@/components/ui/CrateDiggingOverlay';
 
 interface ExtendedGenreData extends GenreStyleData {
