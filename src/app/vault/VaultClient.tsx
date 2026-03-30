@@ -6,6 +6,7 @@ import { identifyVaultCandidates, DiscogsRelease } from '@/lib/discogs';
 import { VaultPedestal } from '@/components/visualizations/VaultPedestal';
 import { RecordOverlay } from '@/components/ui/RecordOverlay';
 import { LightweightRelease } from '@/components/ui/RecentGrid';
+import { ImprintAnalytics } from '@/components/analytics/ImprintAnalytics';
 
 interface VaultClientProps {
   initialReleases: DiscogsRelease[];
@@ -241,6 +242,9 @@ export function VaultClient({ initialReleases }: VaultClientProps) {
             </div>
          </div>
       </section>
+
+
+       <ImprintAnalytics releases={releases} vaultMetadata={vaultMetadata} />
 
       {/* Sync Status Footer */}
       <div className="fixed bottom-8 right-8 z-50">

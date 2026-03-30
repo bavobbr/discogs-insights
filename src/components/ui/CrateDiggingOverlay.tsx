@@ -114,7 +114,8 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
 
           {/* Active Record Card */}
           <div
-            className={`relative w-full aspect-square bg-surface shadow-2xl rounded-sm overflow-hidden 
+            onClick={() => handleFlip('next')}
+            className={`relative w-full aspect-square bg-surface shadow-2xl rounded-sm overflow-hidden cursor-pointer group/card
               ${isFlipping ? 'transition-all duration-300 ease-in' : 'transition-none'}
               ${isFlipping ? (direction === 'next' ? '[transform:rotateX(-90deg)_translateY(-80px)] opacity-0' : '[transform:rotateX(90deg)_translateY(80px)] opacity-0') : '[transform:rotateX(0deg)_translateY(0)] opacity-100'}
             `}

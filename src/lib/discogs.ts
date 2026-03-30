@@ -58,6 +58,7 @@ export interface ReleaseDetails {
     };
   };
   lowest_price: number | null;
+  country: string;
 }
 
 export interface CollectionResponse {
@@ -181,6 +182,7 @@ export async function fetchReleaseDetails(id: number): Promise<ReleaseDetails | 
   const scrubbed: ReleaseDetails = {
     id: data.id,
     lowest_price: data.lowest_price,
+    country: data.country || "Unknown",
     community: {
       have: data.community?.have || 0,
       want: data.community?.want || 0,
