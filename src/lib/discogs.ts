@@ -1,3 +1,12 @@
+import { getOAuthHeader } from './oauth';
+
+export interface DiscogsAuth {
+  token: string;
+  secret?: string;
+  username?: string;
+  method: 'pat' | 'oauth';
+}
+
 export interface DiscogsRelease {
   id: number;
   instance_id: number;
@@ -75,25 +84,46 @@ export interface CollectionResponse {
   releases: DiscogsRelease[];
 }
 
-const DISCOGS_USERNAME = process.env.DISCOGS_USERNAME || 'bavobbr'; // Fallback or loaded from env
+const DEFAULT_USERNAME = process.env.DISCOGS_USERNAME || 'bavobbr';
 const API_URL = 'https://api.discogs.com';
+
+function getAuthHeaders(auth?: DiscogsAuth) {
+  const method = auth?.method || 'pat';
+  const token = auth?.token || process.env.DISCOGS_PAT;
+
+  if (method === 'pat') {
+    return {
+      'Authorization': `Discogs token=${token}`,
+      'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
+    };
+  }
+
+  // OAuth 1.0a header generation using utility
+  return {
+     'Authorization': getOAuthHeader(token!, auth!.secret!),
+     'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
+  };
+}
+
+function getUsername(auth?: DiscogsAuth) {
+  return auth?.username || DEFAULT_USERNAME;
+}
 
 // Backend Rate Limiter: State persists during the lifetime of the Next.js process (dev server)
 let lastApiRequestTime = 0;
 const MIN_REQUEST_INTERVAL = 1100; // ~55 requests/min for safety
 
-export async function fetchCollection(page: number = 1, perPage: number = 100, force: boolean = false): Promise<CollectionResponse | null> {
-  const token = process.env.DISCOGS_PAT;
-  if (!token) {
-    console.error("Missing DISCOGS_PAT environment variable.");
+export async function fetchCollection(auth?: DiscogsAuth, page: number = 1, perPage: number = 100, force: boolean = false): Promise<CollectionResponse | null> {
+  const username = getUsername(auth);
+  const headers = getAuthHeaders(auth);
+  
+  if (!headers.Authorization) {
+    console.error("Missing authentication credentials.");
     return null;
   }
 
   const fetchOptions: RequestInit & { next?: { revalidate: number } } = {
-    headers: {
-      'Authorization': `Discogs token=${token}`,
-      'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
-    },
+    headers,
   };
 
   if (force) {
@@ -102,7 +132,7 @@ export async function fetchCollection(page: number = 1, perPage: number = 100, f
     fetchOptions.next = { revalidate: 3600 };
   }
 
-  const res = await fetch(`${API_URL}/users/${DISCOGS_USERNAME}/collection/folders/0/releases?page=${page}&per_page=${perPage}`, fetchOptions);
+  const res = await fetch(`${API_URL}/users/${username}/collection/folders/0/releases?page=${page}&per_page=${perPage}`, fetchOptions);
 
   if (!res.ok) {
     console.error(`Failed to fetch from Discogs: ${res.statusText}`);
@@ -115,14 +145,14 @@ export async function fetchCollection(page: number = 1, perPage: number = 100, f
 /**
  * Aggregates all user releases, handling pagination. Can be limited by DEV_LIMIT.
  */
-export async function fetchAllUserReleases(): Promise<DiscogsRelease[]> {
+export async function fetchAllUserReleases(auth?: DiscogsAuth): Promise<DiscogsRelease[]> {
   const devLimit = process.env.DEV_LIMIT ? parseInt(process.env.DEV_LIMIT, 10) : Infinity;
   let allReleases: DiscogsRelease[] = [];
   let page = 1;
   const perPage = 100;
 
   while (true) {
-    const data = await fetchCollection(page, perPage);
+    const data = await fetchCollection(auth, page, perPage);
     if (!data) break;
 
     allReleases = allReleases.concat(data.releases);
@@ -147,16 +177,13 @@ export async function fetchAllUserReleases(): Promise<DiscogsRelease[]> {
 /**
  * Fetches extended metadata for a specific release to get community stats and pricing.
  */
-export async function fetchReleaseDetails(id: number): Promise<ReleaseDetails | null> {
-  const token = process.env.DISCOGS_PAT;
-  if (!token) return null;
+export async function fetchReleaseDetails(id: number, auth?: DiscogsAuth): Promise<ReleaseDetails | null> {
+  const headers = getAuthHeaders(auth);
+  if (!headers.Authorization) return null;
 
   const startTime = Date.now();
   const res = await fetch(`${API_URL}/releases/${id}`, {
-    headers: {
-      'Authorization': `Discogs token=${token}`,
-      'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
-    },
+    headers,
     next: { revalidate: 86400 } // Cache for 24h as these stats don't change rapidly
   });
 
@@ -198,16 +225,13 @@ export async function fetchReleaseDetails(id: number): Promise<ReleaseDetails | 
 /**
  * Fetches price suggestions based on marketplace history for different conditions.
  */
-export async function fetchPriceSuggestions(id: number): Promise<PriceSuggestions | null> {
-  const token = process.env.DISCOGS_PAT;
-  if (!token) return null;
+export async function fetchPriceSuggestions(id: number, auth?: DiscogsAuth): Promise<PriceSuggestions | null> {
+  const headers = getAuthHeaders(auth);
+  if (!headers.Authorization) return null;
 
   try {
     const res = await fetch(`${API_URL}/marketplace/price_suggestions/${id}`, {
-      headers: {
-        'Authorization': `Discogs token=${token}`,
-        'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
-      },
+      headers,
       cache: 'no-store'
     });
 
@@ -400,17 +424,14 @@ export interface CollectionValue {
   minimum: string;
 }
 
-export async function fetchCollectionValue(): Promise<CollectionValue | null> {
-  const token = process.env.DISCOGS_PAT;
-  const username = process.env.DISCOGS_USERNAME || 'bavobbr';
-  if (!token) return null;
+export async function fetchCollectionValue(auth?: DiscogsAuth): Promise<CollectionValue | null> {
+  const headers = getAuthHeaders(auth);
+  const username = getUsername(auth);
+  if (!headers.Authorization) return null;
 
   const res = await fetch(`https://api.discogs.com/users/${username}/collection/value`, {
-    headers: {
-      'Authorization': `Discogs token=${token}`,
-      'User-Agent': 'VinylPulse/1.0 +github.com/bavobbr',
-    },
-    next: { revalidate: 3600 }
+     headers,
+     next: { revalidate: 3600 }
   });
 
   if (!res.ok) {

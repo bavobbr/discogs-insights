@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchReleaseDetails } from '@/lib/discogs';
+import { fetchReleaseDetails, DiscogsAuth } from '@/lib/discogs';
+import { cookies } from 'next/headers';
 
 export async function GET(
   _request: NextRequest,
@@ -12,8 +13,26 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid Release ID' }, { status: 400 });
   }
 
+  const cookieStore = await cookies();
+  const session = cookieStore.get('discogs_session')?.value;
+  let auth: DiscogsAuth | undefined;
+
+  if (session) {
+    try {
+      const parsed = JSON.parse(session);
+      auth = { 
+        token: parsed.token, 
+        secret: parsed.secret, 
+        username: parsed.username, 
+        method: 'oauth' 
+      };
+    } catch (e) {
+      console.error('Failed to parse discogs session cookie:', e);
+    }
+  }
+
   try {
-    const data = await fetchReleaseDetails(id);
+    const data = await fetchReleaseDetails(id, auth);
     
     if (!data) {
       return NextResponse.json({ error: 'Failed to fetch from Discogs' }, { status: 500 });

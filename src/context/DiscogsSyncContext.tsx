@@ -13,8 +13,10 @@ interface DiscogsSyncContextType {
   isSyncingVault: boolean;
   vaultScannedCount: number;
   vaultTotalCount: number;
+  user: { username: string } | null;
   startSync: (initialReleases?: DiscogsRelease[], totalCount?: number, force?: boolean) => void;
   syncVaultData: (candidateIds: number[]) => Promise<void>;
+  logout: () => void;
 }
 
 const DiscogsSyncContext = createContext<DiscogsSyncContextType | undefined>(undefined);
@@ -29,6 +31,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const [isSyncingVault, setIsSyncingVault] = useState(false);
   const [vaultScannedCount, setVaultScannedCount] = useState(0);
   const [vaultTotalCount, setVaultTotalCount] = useState(0);
+  const [user, setUser] = useState<{ username: string } | null>(null);
   
   const syncInProgress = useRef(false);
   const syncCompleted = useRef(false);
@@ -38,6 +41,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   // Constants for localStorage keys
   const STORAGE_KEY_RELEASES = 'vinyl_pulse_releases';
   const STORAGE_KEY_VAULT = 'vinyl_pulse_vault_metadata';
+  const STORAGE_KEY_USER = 'vinyl_pulse_user';
 
   // State Recovery on Mount
   React.useEffect(() => {
@@ -67,6 +71,46 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
         }
       }
       
+      // Check Authentication
+      fetch('/api/auth/me')
+        .then(res => res.json())
+        .then(data => {
+          const currentStoredUser = localStorage.getItem(STORAGE_KEY_USER);
+          
+          if (data.authenticated) {
+            const newUser = { username: data.username };
+            
+            // SESSION TRANSITION: If we switch from Guest to User OR between different Users
+            if (currentStoredUser !== data.username) {
+              console.log(`[Sync] Session changed (${currentStoredUser || 'Guest'} -> ${data.username}). Resetting local data.`);
+              
+              // Clear state
+              setReleases([]);
+              setVaultMetadata({});
+              setSyncedCount(0);
+              setVaultScannedCount(0);
+              
+              // Clear storage
+              localStorage.removeItem(STORAGE_KEY_RELEASES);
+              localStorage.removeItem(STORAGE_KEY_VAULT);
+            }
+            
+            setUser(newUser);
+            localStorage.setItem(STORAGE_KEY_USER, data.username);
+          } else {
+            // SESSION TRANSITION: If we were logged in but now we're not (Logout)
+            if (currentStoredUser) {
+              console.log(`[Sync] Session ended. Resetting to Guest mode.`);
+              setReleases([]);
+              setVaultMetadata({});
+              localStorage.removeItem(STORAGE_KEY_RELEASES);
+              localStorage.removeItem(STORAGE_KEY_VAULT);
+              localStorage.removeItem(STORAGE_KEY_USER);
+            }
+            setUser(null);
+          }
+        });
+
       isInitialized.current = true;
     }
   }, []);
@@ -227,8 +271,12 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       isSyncingVault,
       vaultScannedCount,
       vaultTotalCount,
+      user,
       startSync,
-      syncVaultData
+      syncVaultData,
+      logout: () => {
+        window.location.href = '/api/auth/logout';
+      }
     }}>
       {children}
     </DiscogsSyncContext.Provider>

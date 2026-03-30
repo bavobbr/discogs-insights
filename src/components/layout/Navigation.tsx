@@ -1,14 +1,14 @@
 "use client";
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
 
 export function TopAppBar() {
   const pathname = usePathname();
-  const { isSyncing, progress, startSync, syncedCount, totalItems } = useDiscogsSync();
+  const { isSyncing, progress, startSync, syncedCount, totalItems, user, logout } = useDiscogsSync();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleRefresh = () => {
     // Start sync with force=true to bypass cache
@@ -86,14 +86,55 @@ export function TopAppBar() {
             </button>
           </div>
 
-          <div className="w-8 h-8 rounded-full bg-surface-container-high border border-[#E5E2E1]/10 overflow-hidden ring-2 ring-primary/20 relative">
-            <Image 
-              alt="User profile" 
-              className="object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9Lwc-8GQwwO7hwn0JMmKNILiApT4Lnf94t_fZzizR2L9YhJFlm1DVfcrg-cD69fMcuzSvhyegv29_89jXUBrrjHHCisR_08mx9eJ2Y1nDYX3mXqhQ6apWFZ5quYyYTyq5bJPhzpuEt1xbpVKh6eEKnQL8OzLn9_7sj2-5KF2e6lrj79wkMj7LgneNoC_7R7-fpAw0RdLpgLazQCaxKF4e6Bouf1rkFLF5wkv6M1T04siRxSViwuGwqI9jUgeq6DWTrb9DPaG4" 
-              fill
-              sizes="32px"
-            />
+          <div className="relative">
+            <button 
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="w-8 h-8 rounded-full bg-surface-container-high border border-[#E5E2E1]/10 overflow-hidden ring-2 ring-primary/20 hover:ring-primary transition-all relative group"
+            >
+              {user ? (
+                <div className="w-full h-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs">
+                  {user.username.substring(0, 2).toUpperCase()}
+                </div>
+              ) : (
+                <div className="w-full h-full bg-surface-container-highest flex items-center justify-center text-[#E5E2E1]/50 group-hover:text-primary transition-colors">
+                  <span className="material-symbols-outlined text-lg">person</span>
+                </div>
+              )}
+            </button>
+
+            {isProfileOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-[#1A1A1A] border border-[#E5E2E1]/10 rounded-xl shadow-2xl p-2 animate-in fade-in slide-in-from-top-2">
+                {user ? (
+                  <>
+                    <div className="px-4 py-3 border-b border-white/5 mb-1">
+                      <p className="text-[10px] text-[#E5E2E1]/50 uppercase tracking-widest font-bold">Authenticated as</p>
+                      <p className="text-sm font-headline font-bold text-primary truncate">{user.username}</p>
+                    </div>
+                    <button 
+                      onClick={() => logout()}
+                      className="w-full flex items-center gap-3 px-4 py-2 text-left text-xs font-bold text-[#E5E2E1]/70 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm">logout</span>
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-4 py-3 border-b border-white/5 mb-1">
+                      <p className="text-xs font-bold text-[#E5E2E1]">Guest Mode</p>
+                      <p className="text-[10px] text-[#E5E2E1]/50 leading-tight mt-1">Viewing default library. Connect your own Discogs for personalized insights.</p>
+                    </div>
+                    <Link 
+                      href="/api/auth/login"
+                      className="flex items-center gap-3 px-4 py-3 text-left bg-primary hover:bg-primary/90 text-surface rounded-lg transition-all"
+                    >
+                      <span className="material-symbols-outlined text-sm font-bold">link</span>
+                      <span className="text-xs font-black uppercase tracking-wider">Connect Discogs</span>
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
