@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 export function CrateCard({
   title,
   artist,
@@ -32,10 +34,12 @@ export function CrateCard({
     <div className={`flex flex-col gap-2 ${offset ? 'mt-8' : ''}`}>
       <div className="aspect-square bg-surface-container-high relative overflow-hidden group rounded-sm hover:-translate-y-1 transition-transform duration-300">
         {imageUrl ? (
-          <img
+          <Image
             alt="Album art"
-            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+            className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
             src={imageUrl}
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-surface-container">
