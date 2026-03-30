@@ -8,7 +8,7 @@ import { RecordOverlay } from '@/components/ui/RecordOverlay';
 import { LightweightRelease } from '@/components/ui/RecentGrid';
 
 interface VaultClientProps {
-  initialReleases: any[];
+  initialReleases: DiscogsRelease[];
 }
 
 export function VaultClient({ initialReleases }: VaultClientProps) {
