@@ -6,3 +6,9 @@
 env:
   - variable: NEXT_PUBLIC_API_URL
     value: /api
+  - variable: DISCOGS_PAT
+    secret: DISCOGS_PAT
+  - variable: DISCOGS_USERNAME
+    value: bavobbr
+  - variable: DEV_LIMIT
+    value: "500"
