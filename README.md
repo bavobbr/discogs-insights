@@ -1,87 +1,174 @@
-# Discogs Insights (Vinyl Pulse)
+# Vinyl Pulse (Discogs Insights)
 
-A progressive web application (PWA) built to analyze, visualize, and explore your Discogs record collection.
+A progressive web application (PWA) built to analyze, visualize, and explore your Discogs vinyl collection with a premium, data-driven aesthetic.
+
+🌐 **Live Demo**: [discogs-insights.vercel.app](https://discogs-insights.vercel.app)
+
+---
 
 ## 🚀 Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
-- **Library**: [React 19](https://react.dev/) (Release Candidate)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Data Source**: [Discogs API](https://www.discogs.com/developers)
-- **Tooling**: ESLint, PostCSS
+| Category | Technology |
+|----------|-----------|
+| **Framework** | [Next.js 15](https://nextjs.org/) (App Router) |
+| **Library** | [React 19](https://react.dev/) |
+| **Language** | [TypeScript](https://www.typescriptlang.org/) |
+| **Styling** | [Tailwind CSS](https://tailwindcss.com/) |
+| **Data Source** | [Discogs API](https://www.discogs.com/developers) |
+| **Auth** | Discogs OAuth 1.0a |
+| **Deployment** | [Vercel](https://vercel.com) |
+| **Tooling** | ESLint, PostCSS |
+
+---
+
+## ✨ Features
+
+### 🔐 Multi-User Authentication (OAuth 1.0a)
+- Users can **Connect their own Discogs account** via OAuth 1.0a to view personalized collection insights.
+- A **Guest / Demo Mode** (backed by a pre-configured Personal Access Token) is available immediately without login.
+- Auth sessions are stored in secure **HTTP-only cookies** — tokens never reach the client.
+- The nav bar shows the authenticated username and allows one-click logout.
+
+### ⚡ Pulse Sync Engine
+- A custom background synchronization engine that **batch-fetches** your Discogs collection in real-time with live progress tracking in the nav bar.
+- Force-refresh support to bypass cache and pull latest collection data.
+- A **lean data-scrubbing strategy** prevents `localStorage` quota overflows for large collections.
+
+### 📅 Original Release Year Enrichment
+- Fetches **Discogs Master Records** to resolve the original release year for re-issues.
+- Stores enriched year data in sync context so visualizations reflect when music was *created*, not when your pressing was manufactured.
+- Built-in per-user API rate limiting ensures smooth background enrichment without hitting Discogs' rate caps.
+
+### 🗄️ The Vault
+A dedicated analytics page for deep-diving into the most significant records in your collection:
+- **The Grails** — Your highest-value records by market price, ranked in a premium pedestal layout.
+- **Most Coveted** — Records with the highest want/have community ratio.
+- **Hidden Gems** — Personal 5-star favorites that are rare in the wild (low "have" count).
+- **Archive Integrity Meter** — Live progress bar tracking how many records have been deep-scanned.
+
+### 🏷️ The Imprint (Label Analytics)
+- A visualization of your collection's **record label distribution** and **geographical pressing origins**.
+- Surfaces the top pressing countries in your collection with a geographic breakdown.
+- Embedded within the Vault page as a dedicated analytics section.
+
+### 📊 Visualizations
+
+| Page | Description |
+|------|-------------|
+| **Decade Heatmap** | A tactile, art-focused view of your collection's distribution across decades. Uses original release years where available. |
+| **Genre Matrix** | A deep-drill visualization to explore styles within your favorite genres via an interactive sunburst-style matrix. |
+
+### 📦 Infinite Scroll Collection
+- Seamlessly browse your entire record crate with automatic pagination.
+- Smooth scroll-to-load, no "load more" button needed.
+
+### 🎛️ Interactive Overlays
+- **Record Detail Overlay**: In-depth release information, community stats, and pricing.
+- **Crate Digging Overlay**: An immersive 3D flip-card experience to browse records by decade.
+
+---
 
 ## 📂 Project Structure
 
-The project follows a standard Next.js App Router structure with customized component and lib directories:
-
 ```text
-├── design/                 # Design documentation and specifications (Excluded from Git)
-├── public/                 # Static assets (fonts, icons, external files)
+├── design/                 # Design documentation and specs (excluded from Git)
+├── public/                 # Static assets (fonts, icons, manifest)
 └── src/
     ├── app/                # Next.js App Router pages and layouts
-    │   ├── api/            # Serverless API routes (e.g., Discogs Sync)
+    │   ├── api/
+    │   │   ├── auth/       # OAuth 1.0a routes (login, callback, logout, me)
+    │   │   └── discogs/
+    │   │       ├── master/         # Master release year lookup
+    │   │       ├── release/[id]/   # Single release detail
+    │   │       ├── price-suggestions/ # Marketplace price data
+    │   │       └── sync/           # Collection sync endpoint
     │   ├── decades/        # "Decade Heatmap" visualization page
     │   ├── genre/          # "Genre Matrix" drill-down page
-    │   ├── fonts/          # Custom local fonts
-    │   ├── globals.css     # Global styles and tailwind directives
+    │   ├── vault/          # "The Vault" private archive page
+    │   ├── globals.css     # Global styles and Tailwind directives
     │   ├── layout.tsx      # Root application layout
-    │   └── page.tsx        # Application homepage / dashboard
+    │   └── page.tsx        # Homepage / Collection dashboard
     │
     ├── components/         # Reusable React components
-    │   ├── layout/         # Layout components (Navigation, AppBars)
+    │   ├── analytics/      # Analytics sections (ImprintAnalytics)
+    │   ├── layout/         # Navigation (TopAppBar, BottomNavBar)
     │   ├── ui/             # Interactive elements (Overlays, Cards, Grids)
-    │   └── visualizations/ # Data visualizations (Heatmaps, Genre Matrices)
+    │   └── visualizations/ # Data viz (DecadeHeatmap, GenreStyleMatrix, VaultPedestal)
     │
-    ├── context/            # Global state management
-    │   └── DiscogsSyncContext.tsx # The "Pulse Sync" engine logic
+    ├── context/
+    │   └── DiscogsSyncContext.tsx  # Global sync engine, OAuth user state, vault metadata
     │
-    └── lib/                # Core utilities and data fetching
-        └── discogs.ts      # Discogs API wrapper and data processing logic
+    └── lib/
+        ├── discogs.ts      # Discogs API wrapper and data processing
+        ├── oauth.ts        # OAuth 1.0a helpers (request/access token, identity)
+        └── rateLimiter.ts  # Per-user API request queue (~50 req/min)
 ```
 
-## 🛠️ Features overview
-
-- **Pulse Sync Engine**: A custom background synchronization engine that fetches your Discogs collection in real-time with progress tracking.
-- **Infinite Scroll Collection**: Seamlessly browse your entire record crate with automatic pagination.
-- **Interactive Overlays**: 
-  - **Record Detail Overlay**: In-depth information for every release.
-  - **Crate Digging Overlay**: An immersive 3D flip-card experience to browse records by decade.
-- **Visualizations**: 
-  - **Decade Heatmap**: A tactile, art-focused view of your collection's distribution over the years.
-  - **Genre Matrix**: A deep-drill visualization to explore styles within your favorite genres.
-- **Mobile-First Design**: A premium, responsive interface optimized for both desktop and PWA mobile usage.
+---
 
 ## 💻 Getting Started
 
-1. **Install Dependencies**
-   ```bash
-   npm install
-   ```
+### 1. Install Dependencies
 
-2. **Environment Variables**
-   Create a `.env.local` file in the root directory and add your Discogs API credentials. You can obtain a Personal Access Token (PAT) from your [Discogs Settings](https://www.discogs.com/settings/developers).
+```bash
+npm install
+```
 
-   ```env
-   DISCOGS_PAT=your_personal_access_token_here
-   DISCOGS_USERNAME=your_discogs_username
-   DEV_LIMIT=500 # Optional: limits the total number of records fetched during sync
-   ```
+### 2. Configure Environment Variables
 
-3. **Run the Development Server**
-   ```bash
-   npm run dev
-   ```
+Create a `.env.local` file in the project root:
 
-4. **View the App**
-   Open [http://localhost:3000](http://localhost:3000) with your browser to see the results.
+```env
+# --- Demo / Guest Mode (Personal Access Token) ---
+DISCOGS_PAT=your_personal_access_token_here
+DISCOGS_USERNAME=your_discogs_username
+
+# --- Multi-User OAuth (required for "Connect Discogs" feature) ---
+DISCOGS_CONSUMER_KEY=your_app_consumer_key
+DISCOGS_CONSUMER_SECRET=your_app_consumer_secret
+DISCOGS_CALLBACK_URL=http://localhost:3000/api/auth/callback
+
+# --- Optional ---
+DEV_LIMIT=500  # Cap the number of records fetched during sync (useful for development)
+```
+
+- **PAT**: Obtain from [Discogs Developer Settings](https://www.discogs.com/settings/developers).
+- **OAuth credentials**: Register an application at [discogs.com/settings/developers](https://www.discogs.com/settings/developers) to get a Consumer Key/Secret.
+
+### 3. Run the Development Server
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
 
 ## 🚢 Deployment (Vercel)
 
-When deploying to Vercel, make sure to add the following environment variables in your project settings:
+All API calls are performed server-side (SSR / API routes), so secrets are never exposed to the client.
 
-- `DISCOGS_PAT`: Your Discogs Personal Access Token.
-- `DISCOGS_USERNAME`: The Discogs username whose collection you want to display (e.g., for a "Demo Mode").
-- `DEV_LIMIT`: (Optional) A number to cap the collection size if needed for performance testing.
+Set the following environment variables in your **Vercel project settings**:
 
-All Discogs API calls are performed server-side (via SSR or internal API routes), so your `DISCOGS_PAT` remains secure and is never exposed to the client.
+| Variable | Description |
+|----------|-------------|
+| `DISCOGS_PAT` | Personal Access Token for the demo/guest account |
+| `DISCOGS_USERNAME` | Discogs username for the demo/guest account |
+| `DISCOGS_CONSUMER_KEY` | OAuth app consumer key |
+| `DISCOGS_CONSUMER_SECRET` | OAuth app consumer secret |
+| `DISCOGS_CALLBACK_URL` | Production callback URL, e.g. `https://discogs-insights.vercel.app/api/auth/callback` |
+| `DEV_LIMIT` | *(Optional)* Cap collection size for performance testing |
+
+> **Important**: Remember to add your production callback URL (`https://your-app.vercel.app/api/auth/callback`) to your Discogs application's allowed callback URLs in the developer settings.
+
+---
+
+## 🎨 Design Philosophy
+
+Vinyl Pulse is built around a **premium, tactile, and immersive** aesthetic — the "Pulse" vibe. Key principles:
+
+- **Mobile-First**: Designed for a phone-in-hand record browsing experience, scales elegantly to desktop.
+- **Capacitor/Android Ready**: UI avoids browser-only hacks, making it straightforward to wrap as a native Android app.
+- **Dark & Alive**: Rich dark palettes with glowing accents (primary orange `#FF4F00`), micro-animations, and glassmorphism surfaces.
+- **Data-Driven but Expressive**: Every visualization is built to feel like an art piece, not a dashboard widget.
