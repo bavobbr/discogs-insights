@@ -17,6 +17,7 @@ A progressive web application (PWA) built to analyze, visualize, and explore you
 | **Data Source** | [Discogs API](https://www.discogs.com/developers) |
 | **Auth** | Discogs OAuth 1.0a |
 | **Deployment** | [Vercel](https://vercel.com) |
+| **Analytics** | [Vercel Analytics](https://vercel.com/analytics) |
 | **Tooling** | ESLint, PostCSS |
 
 ---
@@ -48,7 +49,8 @@ A dedicated analytics page for deep-diving into the most significant records in 
 
 ### 🏷️ The Imprint (Label Analytics)
 - A visualization of your collection's **record label distribution** and **geographical pressing origins**.
-- Surfaces the top pressing countries in your collection with a geographic breakdown.
+- Surfaces the top pressing countries in your collection with a geographic breakdown and label-specific heatmaps.
+- Optimized via **data scrubbing** to maintain rich insights within `localStorage` limits.
 - Embedded within the Vault page as a dedicated analytics section.
 
 ### 📊 Visualizations
@@ -56,7 +58,7 @@ A dedicated analytics page for deep-diving into the most significant records in 
 | Page | Description |
 |------|-------------|
 | **Decade Heatmap** | A tactile, art-focused view of your collection's distribution across decades. Uses original release years where available. |
-| **Genre Matrix** | A deep-drill visualization to explore styles within your favorite genres via an interactive sunburst-style matrix. |
+| **Genre Matrix** | A deep-drill visualization to explore styles within your favorite genres via an interactive sunburst-style matrix. Features seamless navigation across genres and sub-styles. |
 
 ### 📦 Infinite Scroll Collection
 - Seamlessly browse your entire record crate with automatic pagination.

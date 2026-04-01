@@ -13,16 +13,19 @@ This document defines the core principles and operational rules for AI agents (G
 - **Performance & Responsiveness**:
   - **Batch Data Loading**: Always implement data fetching in batches (e.g., the Pulse Sync Engine).
   - **Main Thread Health**: Keep the UI responsive at all times, even when handling large datasets or complex SVG/Canvas visualizations. Use concurrent React patterns and optimizations (memo, callback, refs) where appropriate.
+  - **Data Scrubbing**: When adding new analytical features, proactively scrub API responses to extract only necessary fields before storing them in `localStorage` to avoid quota overflows.
 
 ## ⚠️ Model-Specific Constraints (Antigravity/Gemini)
 
-- **Browser Usage**: The local internal browser tool **does NOT work** in this environment. DO NOT attempt to use it as a way to test or preview the code. Always rely on source code analysis and command-line verification.
+- **Browser Usage**: The local internal browser tool works in this environment. You **must** use it to verify UI changes, navigate through user flows, and ensure and responsive layouts are correct before finalizing changes.
+- **Automated Verification**: When possible, use the browser-subagent to perform repeatable tests of core application logic (e.g., clicking the "Genre" matrix buttons or checking the "Vault" progress bar).
 
 ## 🎯 Project Mission
 
 - **Target Audience**: Dedicated vinyl collectors.
 - **Goal**: Provide deep, meaningful, and visually stunning insights into their Discogs collections.
 - **Tone**: Professional, premium, and data-driven, yet visually expressive and alive.
+- **Knowledge Maintenance**: Document significant architectural decisions or "Hard Problems" in `lessons.md`. This ensures that future agents (and humans) understand the rationale behind complex systems like the Sync Engine or the Rate Limiter.
 
 ---
 *Follow these rules strictly to ensure the project maintains its identity and quality.*

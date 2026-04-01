@@ -172,6 +172,8 @@ The architectural fix has two parts:
 
 **Scrub at the source.** Rather than caching the full API response (15 to 50KB per record, including tracklists, credits, and image arrays), extract only the fields the UI actually needs before committing anything to storage. The difference is roughly 100 bytes vs 50KB per record, three orders of magnitude.
 
+**Case Study: The Imprint.** For label and geographical analytics, we fetch detailed release data. A single label object in the Discogs API can be massive. By scrubbing this down to just the `name`, `catno`, and `country` before storage, we can visualize the distribution of hundreds of labels across a global map without ever approaching the 5MB limit.
+
 **Partition into separate keys.** Each data type (collection, vault metadata, master years, price details) lives in its own storage key. This allows partial recovery — if vault metadata overflows, the core collection remains intact.
 
 ---
