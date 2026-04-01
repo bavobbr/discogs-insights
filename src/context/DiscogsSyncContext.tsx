@@ -121,7 +121,6 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
               setReleases([]);
               setVaultMetadata({});
               setMasterYears({});
-              setSyncedCount(0);
               setVaultScannedCount(0);
               setMasterSyncedCount(0);
 

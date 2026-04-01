@@ -70,7 +70,6 @@ export function RecentGrid({ releases, initialCount = 20, step = 10 }: { release
             title={release.title} 
             artist={release.artist} 
             imageUrl={release.imageUrl}
-            releaseId={release.releaseId}
             year={release.year}
             genres={release.genres}
             styles={release.styles}

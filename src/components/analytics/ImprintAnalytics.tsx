@@ -111,7 +111,6 @@ export function ImprintAnalytics({ releases, vaultMetadata }: ImprintAnalyticsPr
           <div className="flex flex-wrap gap-x-12 gap-y-6 justify-center">
             {useMemo(() => [...data.topLabels].sort(() => Math.sin(data.uniqueLabelsCount) - 0.5), [data.topLabels, data.uniqueLabelsCount]).map(([name, count]) => {
               const weight = count / data.maxLabelCount;
-              const intensity = 0.2 + (weight * 0.8);
               
               // Map colors based on importance
               let color = 'rgba(255,255,255,0.2)';

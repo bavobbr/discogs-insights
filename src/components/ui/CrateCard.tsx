@@ -4,7 +4,6 @@ export function CrateCard({
   title,
   artist,
   imageUrl,
-  releaseId,
   year,
   genres = [],
   styles = [],
@@ -14,7 +13,6 @@ export function CrateCard({
   title: string;
   artist: string;
   imageUrl?: string;
-  releaseId?: number;
   year?: number;
   genres?: string[];
   styles?: string[];

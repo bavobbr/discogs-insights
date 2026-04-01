@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
-import { identifyVaultCandidates, DiscogsRelease } from '@/lib/discogs';
+import { DiscogsRelease } from '@/lib/discogs';
 import { VaultPedestal } from '@/components/visualizations/VaultPedestal';
 import { RecordOverlay } from '@/components/ui/RecordOverlay';
 import { LightweightRelease } from '@/components/ui/RecentGrid';
@@ -21,7 +22,7 @@ export function VaultClient() {
   const [selectedRelease, setSelectedRelease] = React.useState<DiscogsRelease | null>(null);
 
   // Identify candidates for the vault
-  const candidates = useMemo(() => identifyVaultCandidates(releases), [releases]);
+  // (unused, can be used for deep scanning logic in future)
 
   // Trigger a full collection scan for the vault
   useEffect(() => {
@@ -183,7 +184,13 @@ export function VaultClient() {
                         <div key={c.id} className="flex items-center gap-6 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
                           <div className="w-16 h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
                              {c.basic_information.cover_image && (
-                               <img src={c.basic_information.cover_image} alt="" className="object-cover w-full h-full opacity-60 group-hover:opacity-100 transition-opacity" />
+                               <Image 
+                                 src={c.basic_information.cover_image} 
+                                 alt="" 
+                                 fill
+                                 sizes="64px"
+                                 className="object-cover opacity-60 group-hover:opacity-100 transition-opacity" 
+                               />
                              )}
                           </div>
                         <div className="flex-1 min-w-0">
@@ -213,7 +220,13 @@ export function VaultClient() {
                     <div key={c.id} className="flex items-center gap-6 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
                       <div className="w-16 h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
                          {c.basic_information.cover_image && (
-                           <img src={c.basic_information.cover_image} alt="" className="object-cover w-full h-full opacity-40 group-hover:opacity-80 transition-opacity" />
+                           <Image 
+                             src={c.basic_information.cover_image} 
+                             alt="" 
+                             fill
+                             sizes="64px"
+                             className="object-cover opacity-40 group-hover:opacity-80 transition-opacity" 
+                           />
                          )}
                       </div>
                       <div className="flex-1 min-w-0">
