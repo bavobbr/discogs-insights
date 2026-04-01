@@ -30,10 +30,16 @@ const DiscogsSyncContext = createContext<DiscogsSyncContextType | undefined>(und
 export function DiscogsSyncProvider({ children }: { children: React.ReactNode }) {
   const [releases, setReleases] = useState<DiscogsRelease[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
-  const [syncedCount, setSyncedCount] = useState(0);
   const [vaultMetadata, setVaultMetadata] = useState<Record<number, ReleaseDetails>>({});
+  // Mirror for skip-check in syncVaultData without closure staleness
+  const setVaultMetadataAndRef = React.useCallback((updater: (prev: Record<number, ReleaseDetails>) => Record<number, ReleaseDetails>) => {
+    setVaultMetadata(prev => {
+      const next = updater(prev);
+      vaultMetadataRef.current = next;
+      return next;
+    });
+  }, []);
   const [isSyncingVault, setIsSyncingVault] = useState(false);
   const [vaultScannedCount, setVaultScannedCount] = useState(0);
   const [vaultTotalCount, setVaultTotalCount] = useState(0);
@@ -50,6 +56,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const vaultSyncInProgress = useRef(false);
   const masterSyncInProgress = useRef(false);
   const isInitialized = useRef(false);
+  const vaultMetadataRef = useRef<Record<number, ReleaseDetails>>({});
 
   // Constants for localStorage keys
   const STORAGE_KEY_RELEASES = 'vinyl_pulse_releases';
@@ -67,7 +74,6 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
         try {
           const parsed = JSON.parse(savedReleases);
           setReleases(parsed);
-          setSyncedCount(parsed.length);
           console.log(`[Sync] Restored ${parsed.length} releases from storage.`);
         } catch (e) {
           console.error("Failed to restore releases:", e);
@@ -77,6 +83,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       if (savedVault) {
         try {
           const parsed = JSON.parse(savedVault);
+          vaultMetadataRef.current = parsed;
           setVaultMetadata(parsed);
           setVaultScannedCount(Object.keys(parsed).length);
           console.log(`[Sync] Restored metadata for ${Object.keys(parsed).length} vault items.`);
@@ -188,13 +195,11 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     }
   }, [masterYears]);
 
-  // Derive syncedCount and progress from releases state
-  React.useEffect(() => {
-    setSyncedCount(releases.length);
-    if (totalItems > 0) {
-      setProgress(Math.min(100, Math.round((releases.length / totalItems) * 100)));
-    }
-  }, [releases.length, totalItems]);
+  // Derived values — no extra setState, no cascading re-renders
+  const syncedCount = releases.length;
+  const progress = isSyncing && totalItems > 0
+    ? Math.min(100, Math.round((releases.length / totalItems) * 100))
+    : !isSyncing && releases.length > 0 ? 100 : 0;
 
   const startMasterEnrichment = useCallback(async (releasesToEnrich: DiscogsRelease[], force: boolean = false) => {
     if (masterSyncInProgress.current) return;
@@ -225,22 +230,35 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     // serializes all Discogs API calls at 1200ms intervals per user.
     // We just fire all requests; they'll queue server-side and resolve in order.
 
+    const BATCH_SIZE = 10;
     try {
+      let batch: Record<number, number> = {};
+      let batchCount = 0;
+
       for (const masterId of toFetch) {
         const res = await fetch(`/api/discogs/master/${masterId}`);
-
         if (res.ok) {
           const data = await res.json();
           if (data.year) {
-            setMasterYears(prev => ({ ...prev, [masterId]: data.year }));
+            batch[masterId] = data.year;
           }
         }
-        // Note: 429s should no longer occur since the server queue throttles for us.
-        // If they do (e.g. multi-instance), the queue will handle retry implicitly on the next run.
+        batchCount++;
 
-        setMasterSyncedCount(prev => prev + 1);
-        // Tiny yield to keep the UI responsive between state updates
-        await new Promise(r => setTimeout(r, 10));
+        if (batchCount >= BATCH_SIZE) {
+          const captured = batch;
+          const count = batchCount;
+          setMasterYears(prev => ({ ...prev, ...captured }));
+          setMasterSyncedCount(prev => prev + count);
+          batch = {};
+          batchCount = 0;
+        }
+      }
+
+      // Flush remaining
+      if (batchCount > 0) {
+        setMasterYears(prev => ({ ...prev, ...batch }));
+        setMasterSyncedCount(prev => prev + batchCount);
       }
     } catch (error) {
       console.error('[Masters] Enrichment error:', error);
@@ -259,8 +277,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
 
     if (force) {
       setReleases([]);
-      setSyncedCount(0);
-      setProgress(0);
+      vaultMetadataRef.current = {};
       setVaultMetadata({});
       setVaultScannedCount(0);
       setMasterYears({});
@@ -329,7 +346,6 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       setIsSyncing(false);
       syncInProgress.current = false;
       syncCompleted.current = true;
-      setProgress(100);
     }
 
     // After collection sync, kick off master year enrichment in the background
@@ -348,32 +364,47 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     setVaultScannedCount(0);
     setVaultTotalCount(candidateIds.length);
 
+    const BATCH_SIZE = 10;
     try {
+      let batch: Record<number, ReleaseDetails> = {};
+      let batchCount = 0;
+      let scannedCount = 0;
+
       for (const id of candidateIds) {
-        // Increment progress even if cached
-        setVaultScannedCount(prev => prev + 1);
+        scannedCount++;
 
-        // Skip if already have it in local state
-        if (vaultMetadata[id]) continue;
-
-        const res = await fetch(`/api/discogs/release/${id}`);
-        if (res.ok) {
-          const details = await res.json();
-          setVaultMetadata(prev => ({ ...prev, [id]: details }));
+        if (!vaultMetadataRef.current[id]) {
+          const res = await fetch(`/api/discogs/release/${id}`);
+          if (res.ok) {
+            const details = await res.json();
+            batch[id] = details;
+            batchCount++;
+          }
         }
-        
-        // Stand back and let the backend handle the 1s rate limiter.
-        // We use a minimal delay (50ms) to allow the UI to process each arriving record
-        // without blocking the main thread.
-        await new Promise(r => setTimeout(r, 50));
+
+        if (batchCount >= BATCH_SIZE || (scannedCount % BATCH_SIZE === 0)) {
+          if (batchCount > 0) {
+            const captured = batch;
+            setVaultMetadataAndRef(prev => ({ ...prev, ...captured }));
+            batch = {};
+            batchCount = 0;
+          }
+          setVaultScannedCount(scannedCount);
+        }
       }
+
+      // Flush remaining
+      if (batchCount > 0) {
+        setVaultMetadataAndRef(prev => ({ ...prev, ...batch }));
+      }
+      setVaultScannedCount(scannedCount);
     } catch (error) {
       console.error("Vault sync error:", error);
     } finally {
       setIsSyncingVault(false);
       vaultSyncInProgress.current = false;
     }
-  }, [vaultMetadata, isSyncingVault]);
+  }, [setVaultMetadataAndRef]);
 
   return (
     <DiscogsSyncContext.Provider value={{
