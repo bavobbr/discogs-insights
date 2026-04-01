@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { DiscogsRelease, ReleaseDetails } from '@/lib/discogs';
+import { DiscogsRelease, ReleaseDetails, CollectionValue } from '@/lib/discogs';
 
 interface DiscogsSyncContextType {
   releases: DiscogsRelease[];
@@ -18,6 +18,8 @@ interface DiscogsSyncContextType {
   masterSyncedCount: number;
   masterTotalCount: number;
   user: { username: string } | null;
+  isAuthReady: boolean;
+  collectionValue: CollectionValue | null;
   startSync: (initialReleases?: DiscogsRelease[], totalCount?: number, force?: boolean) => void;
   syncVaultData: (candidateIds: number[]) => Promise<void>;
   logout: () => void;
@@ -40,6 +42,8 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const [masterSyncedCount, setMasterSyncedCount] = useState(0);
   const [masterTotalCount, setMasterTotalCount] = useState(0);
   const [user, setUser] = useState<{ username: string } | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [collectionValue, setCollectionValue] = useState<CollectionValue | null>(null);
   
   const syncInProgress = useRef(false);
   const syncCompleted = useRef(false);
@@ -98,14 +102,14 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
         .then(res => res.json())
         .then(data => {
           const currentStoredUser = localStorage.getItem(STORAGE_KEY_USER);
-          
+
           if (data.authenticated) {
             const newUser = { username: data.username };
-            
+
             // SESSION TRANSITION: If we switch from Guest to User OR between different Users
             if (currentStoredUser !== data.username) {
               console.log(`[Sync] Session changed (${currentStoredUser || 'Guest'} -> ${data.username}). Resetting local data.`);
-              
+
               // Clear state
               setReleases([]);
               setVaultMetadata({});
@@ -113,13 +117,13 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
               setSyncedCount(0);
               setVaultScannedCount(0);
               setMasterSyncedCount(0);
-              
+
               // Clear storage
               localStorage.removeItem(STORAGE_KEY_RELEASES);
               localStorage.removeItem(STORAGE_KEY_VAULT);
               localStorage.removeItem(STORAGE_KEY_MASTER_YEARS);
             }
-            
+
             setUser(newUser);
             localStorage.setItem(STORAGE_KEY_USER, data.username);
           } else {
@@ -136,6 +140,14 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
             }
             setUser(null);
           }
+
+          // Fetch collection value in background — works with both OAuth and PAT fallback
+          fetch('/api/discogs/collection-value')
+            .then(res => res.ok ? res.json() : null)
+            .then(val => { if (val) setCollectionValue(val); })
+            .catch(() => {});
+
+          setIsAuthReady(true);
         });
 
       isInitialized.current = true;
@@ -379,6 +391,8 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       masterSyncedCount,
       masterTotalCount,
       user,
+      isAuthReady,
+      collectionValue,
       startSync,
       syncVaultData,
       logout: () => {

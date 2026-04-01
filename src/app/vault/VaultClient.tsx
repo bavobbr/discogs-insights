@@ -8,24 +8,17 @@ import { RecordOverlay } from '@/components/ui/RecordOverlay';
 import { LightweightRelease } from '@/components/ui/RecentGrid';
 import { ImprintAnalytics } from '@/components/analytics/ImprintAnalytics';
 
-interface VaultClientProps {
-  initialReleases: DiscogsRelease[];
-}
-
-export function VaultClient({ initialReleases }: VaultClientProps) {
-  const { 
-    releases: contextReleases, 
-    vaultMetadata, 
-    isSyncingVault, 
-    syncVaultData, 
-    isSyncing, 
-    progress, 
-    vaultScannedCount, 
-    vaultTotalCount 
+export function VaultClient() {
+  const {
+    releases,
+    vaultMetadata,
+    isSyncingVault,
+    syncVaultData,
+    isSyncing,
+    vaultScannedCount,
+    vaultTotalCount
   } = useDiscogsSync();
   const [selectedRelease, setSelectedRelease] = React.useState<DiscogsRelease | null>(null);
-
-  const releases = contextReleases.length > 0 ? contextReleases : initialReleases;
 
   // Identify candidates for the vault
   const candidates = useMemo(() => identifyVaultCandidates(releases), [releases]);
@@ -104,33 +97,33 @@ export function VaultClient({ initialReleases }: VaultClientProps) {
            The Vault
         </h1>
         
-        {/* Progress Header / Integrity Meter */}
-        <div className="max-w-xl mx-auto mt-12 p-6 rounded-2xl bg-surface-container-low/30 border border-white/5 backdrop-blur-sm">
-           <div className="flex justify-between items-center mb-4">
-              <span className="font-headline font-bold text-[10px] tracking-[0.2em] text-on-surface-variant uppercase">Archive Integrity</span>
-              <span className="font-headline font-black text-sm text-primary">
-                 {vaultTotalCount > 0 ? Math.round((vaultScannedCount / vaultTotalCount) * 100) : 0}%
-              </span>
-           </div>
-           
-           <div className="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden relative">
-              <div 
-                className="absolute top-0 left-0 h-full bg-primary transition-all duration-700 ease-out shadow-[0_0_12px_rgba(255,79,0,0.5)]" 
-                style={{ width: `${vaultTotalCount > 0 ? (vaultScannedCount / vaultTotalCount) * 100 : 0}%` }} 
-              />
-              {isSyncingVault && (
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-              )}
-           </div>
+        {/* Progress Header / Integrity Meter — only shown while scanning */}
+        {isSyncingVault && (
+          <div className="max-w-xl mx-auto mt-12 p-6 rounded-2xl bg-surface-container-low/30 border border-white/5 backdrop-blur-sm">
+             <div className="flex justify-between items-center mb-4">
+                <span className="font-headline font-bold text-[10px] tracking-[0.2em] text-on-surface-variant uppercase">Archive Integrity</span>
+                <span className="font-headline font-black text-sm text-primary">
+                   {vaultTotalCount > 0 ? Math.round((vaultScannedCount / vaultTotalCount) * 100) : 0}%
+                </span>
+             </div>
 
-           <div className="mt-4 flex justify-between items-center text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant/60">
-              <div className="flex items-center gap-2">
-                 <div className={`w-1.5 h-1.5 rounded-full ${isSyncingVault ? 'bg-primary animate-pulse' : 'bg-green-500'}`} />
-                 {isSyncingVault ? 'Decrypting Records...' : 'Archive Fully Scanned'}
-              </div>
-              <span>{vaultScannedCount} / {vaultTotalCount} Records</span>
-           </div>
-        </div>
+             <div className="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden relative">
+                <div
+                  className="absolute top-0 left-0 h-full bg-primary transition-all duration-700 ease-out shadow-[0_0_12px_rgba(255,79,0,0.5)]"
+                  style={{ width: `${vaultTotalCount > 0 ? (vaultScannedCount / vaultTotalCount) * 100 : 0}%` }}
+                />
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+             </div>
+
+             <div className="mt-4 flex justify-between items-center text-[10px] font-headline font-bold uppercase tracking-widest text-on-surface-variant/60">
+                <div className="flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                   Decrypting Records...
+                </div>
+                <span>{vaultScannedCount} / {vaultTotalCount} Records</span>
+             </div>
+          </div>
+        )}
       </section>
 
       {/* The Grails Section - Focus 3 */}
@@ -245,16 +238,6 @@ export function VaultClient({ initialReleases }: VaultClientProps) {
 
 
        <ImprintAnalytics releases={releases} vaultMetadata={vaultMetadata} />
-
-      {/* Sync Status Footer */}
-      <div className="fixed bottom-8 right-8 z-50">
-        {isSyncingVault && (
-          <div className="bg-surface-container-highest/80 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl animate-in slide-in-from-right-4">
-             <div className="w-2 h-2 bg-primary rounded-full animate-pulse shadow-[0_0_8px_var(--primary)]" />
-             <span className="font-headline font-bold text-[9px] tracking-widest uppercase text-on-surface">Decrypting Extended Data</span>
-          </div>
-        )}
-      </div>
 
       {/* Detail Overlay */}
       {selectedRelease && (

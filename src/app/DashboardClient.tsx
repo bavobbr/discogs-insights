@@ -2,25 +2,16 @@
 
 import React, { useEffect, useMemo } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
-import { DiscogsRelease, CollectionValue } from '@/lib/discogs';
 import { RecentGrid } from '@/components/ui/RecentGrid';
 
-interface DashboardClientProps {
-  initialReleases: DiscogsRelease[];
-  totalItems: number;
-  collectionValue: CollectionValue | null;
-}
-
-export function DashboardClient({ initialReleases, totalItems: initialTotal, collectionValue }: DashboardClientProps) {
-  const { releases: contextReleases, startSync, totalItems, isSyncing, progress } = useDiscogsSync();
-
-  // Prioritize global context as soon as it has data or is active; fallback to SSR data for initial flash
-  const releases = (contextReleases.length > 0 || isSyncing) ? contextReleases : initialReleases;
+export function DashboardClient() {
+  const { releases, startSync, totalItems, isSyncing, progress, isAuthReady, collectionValue } = useDiscogsSync();
 
   useEffect(() => {
-    // Start sync on mount with initial data from SSR
-    startSync(initialReleases, initialTotal);
-  }, [initialReleases, initialTotal, startSync]);
+    if (isAuthReady) {
+      startSync();
+    }
+  }, [isAuthReady, startSync]);
 
   const lightweightReleases = useMemo(() => {
     return [...releases]
@@ -52,49 +43,49 @@ export function DashboardClient({ initialReleases, totalItems: initialTotal, col
       <section className="mb-16">
         <div className="flex justify-between items-start mb-2">
           <span className="font-headline font-bold uppercase text-[10px] tracking-widest text-primary">CRATE DIGGER DASHBOARD</span>
-          {isSyncing && (
-            <div className="flex items-center gap-2">
-               <span className="font-headline font-bold uppercase text-[10px] text-primary/60 tracking-widest animate-pulse">Syncing Collection</span>
-               <span className="font-headline font-bold text-[10px] text-primary">{progress}%</span>
-            </div>
-          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
           <div className="flex flex-col border-l-2 border-primary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300">
             <span className="font-headline font-bold uppercase text-xs text-on-surface-variant tracking-tighter mb-2">Total Collection</span>
             <div className="flex items-center gap-3">
               <span className="font-headline font-black text-5xl tracking-tighter text-on-surface">
-                {totalItems || initialTotal}
+                {totalItems || '—'}
               </span>
-              <div className="px-2 py-0.5 bg-primary/10 rounded-sm">
-                <span className="font-headline font-bold text-[10px] text-primary uppercase">RECORDS</span>
-              </div>
+              {totalItems > 0 && (
+                <div className="px-2 py-0.5 bg-primary/10 rounded-sm">
+                  <span className="font-headline font-bold text-[10px] text-primary uppercase">RECORDS</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {collectionValue && (
-            <div className="flex flex-col border-l-2 border-secondary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300">
-              <span className="font-headline font-bold uppercase text-xs text-on-surface-variant tracking-tighter mb-2">Estimated Value</span>
-              <div className="flex items-center gap-3">
-                <span className="font-headline font-black text-4xl tracking-tighter text-secondary">{collectionValue.median || '...'}</span>
+          <div className="flex flex-col border-l-2 border-secondary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300">
+            <span className="font-headline font-bold uppercase text-xs text-on-surface-variant tracking-tighter mb-2">Estimated Value</span>
+            <div className="flex items-center gap-3">
+              <span className="font-headline font-black text-4xl tracking-tighter text-secondary">
+                {collectionValue?.median || '—'}
+              </span>
+              {collectionValue && (
                 <div className="px-2 py-0.5 bg-secondary/10 rounded-sm">
                   <span className="font-headline font-bold text-[10px] text-secondary uppercase">MEDIAN</span>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
 
           <div className="hidden lg:flex flex-col border-l-2 border-tertiary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300 relative overflow-hidden">
             <span className="font-headline font-bold uppercase text-xs text-on-surface-variant tracking-tighter mb-2">Data Integrity</span>
             <div className="flex items-center gap-3">
               <span className="font-headline font-black text-4xl tracking-tighter text-tertiary">
-                {isSyncing ? `${progress}%` : '100%'}
+                {isSyncing ? `${progress}%` : totalItems > 0 ? '100%' : '—'}
               </span>
-              <div className="px-2 py-0.5 bg-tertiary/10 rounded-sm">
-                <span className="font-headline font-bold text-[10px] text-tertiary uppercase">
-                  {isSyncing ? 'SYNCING' : 'SYNCED'}
-                </span>
-              </div>
+              {totalItems > 0 && (
+                <div className="px-2 py-0.5 bg-tertiary/10 rounded-sm">
+                  <span className="font-headline font-bold text-[10px] text-tertiary uppercase">
+                    {isSyncing ? 'SYNCING' : 'SYNCED'}
+                  </span>
+                </div>
+              )}
             </div>
             {isSyncing && (
               <div className="absolute bottom-0 left-0 h-[2px] bg-tertiary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />

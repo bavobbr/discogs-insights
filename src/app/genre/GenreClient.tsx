@@ -2,23 +2,17 @@
 
 import React, { useEffect } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
-import { DiscogsRelease, analyzeGenres, getTopVibrations } from '@/lib/discogs';
+import { analyzeGenres, getTopVibrations } from '@/lib/discogs';
 import { GenreStyleMatrix } from '@/components/visualizations/GenreStyleMatrix';
 
-interface GenreClientProps {
-  initialReleases: DiscogsRelease[];
-  totalItems: number;
-}
-
-export function GenreClient({ initialReleases, totalItems: initialTotal }: GenreClientProps) {
-  const { releases: contextReleases, startSync, isSyncing, progress } = useDiscogsSync();
-
-  // Instant hydration fallback
-  const releases = contextReleases.length > 0 ? contextReleases : initialReleases;
+export function GenreClient() {
+  const { releases, startSync, isAuthReady } = useDiscogsSync();
 
   useEffect(() => {
-    startSync(initialReleases, initialTotal);
-  }, [initialReleases, initialTotal, startSync]);
+    if (isAuthReady) {
+      startSync();
+    }
+  }, [isAuthReady, startSync]);
 
   const genreData = analyzeGenres(releases);
   const topVibrations = getTopVibrations(releases);
@@ -33,14 +27,6 @@ export function GenreClient({ initialReleases, totalItems: initialTotal }: Genre
             <span className="font-label font-black uppercase text-[9px] tracking-[0.3em] text-primary mb-2 block animate-pulse">ATMOSPHERES</span>
             <h2 className="font-headline font-black text-5xl lg:text-7xl uppercase tracking-tighter leading-none mt-2">Genre Matrix</h2>
           </div>
-          {isSyncing && (
-            <div className="text-right">
-              <span className="font-headline font-bold uppercase text-[10px] text-primary/60 tracking-widest block mb-1">Syncing Data</span>
-              <div className="h-1 w-32 bg-surface-container-high rounded-full overflow-hidden">
-                <div className="h-full bg-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-          )}
         </div>
         <p className="font-body text-xl italic text-on-surface-variant mt-4 max-w-2xl leading-tight">
           A deep dive into the specific vibrations and styles that define your rotation.

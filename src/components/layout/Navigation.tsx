@@ -7,7 +7,14 @@ import { useDiscogsSync } from '@/context/DiscogsSyncContext';
 
 export function TopAppBar() {
   const pathname = usePathname();
-  const { isSyncing, progress, startSync, syncedCount, totalItems, user, logout } = useDiscogsSync();
+  const {
+    isSyncing, progress, startSync, syncedCount, totalItems,
+    isSyncingVault, vaultScannedCount, vaultTotalCount,
+    isSyncingMasters, masterSyncedCount, masterTotalCount,
+    user, logout
+  } = useDiscogsSync();
+
+  const isAnySyncing = isSyncing || isSyncingVault || isSyncingMasters;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const handleRefresh = () => {
@@ -65,23 +72,47 @@ export function TopAppBar() {
         
         <div className="flex items-center gap-4">
           <div className="hidden lg:flex items-center gap-4">
-            {isSyncing && (
-              <div className="flex flex-col items-end gap-1 mr-2 scale-in-center">
-                <span className="text-[9px] font-bold text-primary uppercase tracking-widest animate-pulse">
-                  Syncing Crate ({syncedCount}/{totalItems})
-                </span>
-                <div className="w-24 h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
-                  <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-                </div>
+            {isAnySyncing && (
+              <div className="flex flex-col items-end gap-1.5 mr-2">
+                {isSyncing && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-primary uppercase tracking-widest animate-pulse">
+                      Collection {syncedCount}/{totalItems}
+                    </span>
+                    <div className="w-16 h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
+                      <div className="h-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                )}
+                {isSyncingMasters && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-secondary uppercase tracking-widest animate-pulse">
+                      Origins {masterSyncedCount}/{masterTotalCount}
+                    </span>
+                    <div className="w-16 h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
+                      <div className="h-full bg-secondary transition-all duration-300" style={{ width: `${masterTotalCount > 0 ? (masterSyncedCount / masterTotalCount) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                )}
+                {isSyncingVault && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-[#A855F7] uppercase tracking-widest animate-pulse">
+                      Vault {vaultScannedCount}/{vaultTotalCount}
+                    </span>
+                    <div className="w-16 h-0.5 bg-surface-container-highest rounded-full overflow-hidden">
+                      <div className="h-full bg-[#A855F7] transition-all duration-300" style={{ width: `${vaultTotalCount > 0 ? (vaultScannedCount / vaultTotalCount) * 100 : 0}%` }} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <button 
               onClick={handleRefresh}
-              disabled={isSyncing}
+              disabled={isAnySyncing}
               title="Force Refresh Collection"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 active:scale-95 transition-all group ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 active:scale-95 transition-all group ${isAnySyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <span className={`material-symbols-outlined text-sm ${isSyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`}>sync</span>
+              <span className={`material-symbols-outlined text-sm ${isAnySyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`}>sync</span>
               <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">Refresh</span>
             </button>
           </div>
@@ -141,12 +172,12 @@ export function TopAppBar() {
 
       {/* The Pulse Line (Global Progress indicator) */}
       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-transparent overflow-hidden">
-        {isSyncing && (
-          <div 
+        {isAnySyncing && (
+          <div
             className="h-full bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_8px_rgba(255,79,0,0.8)] transition-all duration-500 ease-out"
-            style={{ 
-              width: `${progress}%`,
-              transform: `translateX(${-100 + (progress)}%)`
+            style={{
+              width: `${progress || (isSyncingMasters ? (masterSyncedCount / Math.max(1, masterTotalCount)) * 100 : 0) || (isSyncingVault ? (vaultScannedCount / Math.max(1, vaultTotalCount)) * 100 : 0)}%`,
+              transform: `translateX(${-100 + (progress || (isSyncingMasters ? (masterSyncedCount / Math.max(1, masterTotalCount)) * 100 : 0) || (isSyncingVault ? (vaultScannedCount / Math.max(1, vaultTotalCount)) * 100 : 0))}%)`
             }}
           />
         )}
