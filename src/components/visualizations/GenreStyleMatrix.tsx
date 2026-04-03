@@ -226,18 +226,19 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
               const isAnyHovered = !!hoveredGenre;
               
               return (
-                <circle 
+                <circle
                   key={seg.name}
-                  cx="50" cy="50" fill="transparent"
-                  r={R_INNER} 
+                  cx="50" cy="50" fill="none"
+                  r={R_INNER}
                   stroke={seg.color}
                   strokeDasharray={seg.strokeDashInner}
                   strokeDashoffset={seg.offsetInner}
                   strokeWidth="20"
+                  pointerEvents="visibleStroke"
                   className="transition-all duration-500 ease-out cursor-pointer"
-                  style={{ 
+                  style={{
                     opacity: isAnyHovered ? (isHovered ? 1 : 0.25) : 1,
-                    stroke: seg.color, // Keep original segment color on focus
+                    stroke: seg.color,
                     filter: isHovered ? 'brightness(1.5)' : 'none'
                   }}
                   onMouseEnter={() => setHoveredGenre(seg)}

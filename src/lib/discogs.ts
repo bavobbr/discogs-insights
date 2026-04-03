@@ -406,41 +406,62 @@ export function analyzeGenres(releases: DiscogsRelease[]): GenreStyleData[] {
     }));
 }
 
+export interface VibrationItem {
+  name: string;
+  count: number;
+  releases: DiscogsRelease[];
+}
+
 export function getTopVibrations(releases: DiscogsRelease[]) {
   const genreCounts: Record<string, number> = {};
+  const genreReleases: Record<string, DiscogsRelease[]> = {};
   const currentYear = new Date().getFullYear();
   const recentCounts: Record<string, number> = {};
+  const recentReleases: Record<string, DiscogsRelease[]> = {};
+  const styleCounts: Record<string, number> = {};
+  const styleReleases: Record<string, DiscogsRelease[]> = {};
 
   for (const r of releases) {
     if (r.basic_information.genres && r.basic_information.genres.length > 0) {
       const mainGenre = r.basic_information.genres[0];
       genreCounts[mainGenre] = (genreCounts[mainGenre] || 0) + 1;
+      if (!genreReleases[mainGenre]) genreReleases[mainGenre] = [];
+      genreReleases[mainGenre].push(r);
 
       const dateAdded = new Date(r.date_added);
       if (dateAdded.getFullYear() >= currentYear - 1) {
         recentCounts[mainGenre] = (recentCounts[mainGenre] || 0) + 1;
+        if (!recentReleases[mainGenre]) recentReleases[mainGenre] = [];
+        recentReleases[mainGenre].push(r);
       }
+    }
+
+    for (const style of r.basic_information.styles ?? []) {
+      styleCounts[style] = (styleCounts[style] || 0) + 1;
+      if (!styleReleases[style]) styleReleases[style] = [];
+      styleReleases[style].push(r);
     }
   }
 
   const sortedGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
   if (sortedGenres.length === 0) return null;
 
-  const topGenre = { name: sortedGenres[0][0], count: sortedGenres[0][1] };
+  const topGenres: VibrationItem[] = sortedGenres.slice(0, 8).map(([name, count]) => ({
+    name, count, releases: genreReleases[name] || []
+  }));
 
   const sortedRecent = Object.entries(recentCounts).sort((a, b) => b[1] - a[1]);
-  const risingRhythm = sortedRecent.length > 0 ? { name: sortedRecent[0][0], count: sortedRecent[0][1] } : { name: topGenre.name, count: 0 };
+  const risingRhythms: VibrationItem[] = sortedRecent.slice(0, 8).map(([name, count]) => ({
+    name, count, releases: recentReleases[name] || []
+  }));
 
-  const hiddenGemCandidates = sortedGenres.slice(3);
-  let hiddenGem = { name: 'Unknown', count: 0 };
-  if (hiddenGemCandidates.length > 0) {
-    const rand = Math.floor(Math.random() * hiddenGemCandidates.length);
-    hiddenGem = { name: hiddenGemCandidates[rand][0], count: hiddenGemCandidates[rand][1] };
-  } else if (sortedGenres.length > 1) {
-    hiddenGem = { name: sortedGenres[sortedGenres.length - 1][0], count: sortedGenres[sortedGenres.length - 1][1] };
-  }
+  // Signature styles: top 8 styles across the entire collection
+  const signatureStyles: VibrationItem[] = Object.entries(styleCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, count]) => ({ name, count, releases: styleReleases[name] || [] }));
 
-  return { topGenre, risingRhythm, hiddenGem };
+  return { topGenres, risingRhythms, signatureStyles };
 }
 
 export interface CollectionValue {
