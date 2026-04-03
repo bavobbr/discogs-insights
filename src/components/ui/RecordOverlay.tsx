@@ -103,7 +103,7 @@ export function RecordOverlay({ release, onClose }: { release: LightweightReleas
             </div>
             <div>
               <p className="font-headline font-bold uppercase text-[10px] text-on-surface-variant/60 tracking-widest mb-1">LABEL</p>
-              <p className="font-headline font-black text-lg text-on-surface truncate leading-tight">{release.label}</p>
+              <p className="font-headline font-black text-lg text-on-surface line-clamp-2 leading-tight">{release.label}</p>
               <p className="font-body italic text-xs text-on-surface-variant">{release.catno}</p>
             </div>
             <div className="col-span-2">

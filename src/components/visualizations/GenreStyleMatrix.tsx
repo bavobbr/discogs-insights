@@ -83,7 +83,7 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
                   <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/5 to-transparent -mr-8 -mt-8 rounded-full"></div>
                   
                   <span className="relative z-10 font-label font-black text-[8px] text-[#FF4F00]/50 block mb-1 tracking-[0.2em]">{i + 1 < 10 ? `0${i + 1}` : i + 1}</span>
-                  <span className={`relative z-10 font-headline font-black text-lg text-[#E5E2E1] transition-colors leading-tight line-clamp-1 ${isClickable ? 'group-hover:text-primary' : ''}`}>{style.name}</span>
+                  <span className={`relative z-10 font-headline font-black text-lg text-[#E5E2E1] transition-colors leading-tight line-clamp-2 ${isClickable ? 'group-hover:text-primary' : ''}`}>{style.name}</span>
                   
                   <div className="relative z-10 mt-3 flex items-center justify-between">
                     <span className="text-[10px] text-on-surface-variant italic font-body">{style.count} items</span>
@@ -135,10 +135,10 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
   };
 
   return (
-    <div className="relative flex flex-col items-center py-4 lg:py-8 animate-in fade-in duration-700 w-full overflow-visible">
-      
+    <div className="relative flex flex-col items-center py-2 lg:py-8 animate-in fade-in duration-700 w-full overflow-visible">
+
       {/* Target Focus Label (Top Center) */}
-      <div className="h-28 lg:h-32 flex flex-col items-center justify-center mb-8 lg:mb-12 transition-all duration-500 overflow-visible text-center max-w-sm px-4">
+      <div className="h-20 lg:h-32 flex flex-col items-center justify-center mb-4 lg:mb-12 transition-all duration-500 overflow-visible text-center max-w-sm px-4">
         {hoveredGenre ? (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 flex flex-col items-center">
             <span className="font-headline font-black text-3xl lg:text-4xl uppercase tracking-tighter leading-none text-[#E5E2E1] mb-1">
@@ -153,6 +153,9 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
                 {hoveredGenre.count} RELEASES
               </span>
             </div>
+            <span className="lg:hidden font-label font-bold text-[9px] text-[#FF4F00]/60 uppercase tracking-[0.2em] mt-2 animate-pulse">
+              Tap again to explore →
+            </span>
           </div>
         ) : (
           <div className="opacity-40 flex flex-col items-center mt-2">
@@ -163,7 +166,7 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
       </div>
 
       {/* Main Record Container with Responsive Scaling */}
-      <div className="relative flex justify-center items-center scale-[0.8] sm:scale-90 lg:scale-100 transition-transform duration-500 mt-6 lg:mt-8 mb-4">
+      <div className="relative flex justify-center items-center scale-[0.8] sm:scale-90 lg:scale-100 transition-transform duration-500 mt-1 lg:mt-8 mb-4">
         {/* Background Circular Tonal Layering */}
         <div className="absolute w-[380px] h-[380px] rounded-full bg-surface-container-lowest shadow-[0_0_100px_rgba(0,0,0,0.95)] opacity-40"></div>
         

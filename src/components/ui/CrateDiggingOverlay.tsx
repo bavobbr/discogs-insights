@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { DiscogsRelease } from '@/lib/discogs';
 
@@ -17,6 +18,11 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
   const [direction, setDirection] = useState<'next' | 'prev'>('next');
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
 
   const handleFlip = (dir: 'next' | 'prev') => {
     if (isFlipping || releases.length <= 1) return;
@@ -74,19 +80,21 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
       : (activeIndex - 1 + releases.length) % releases.length;
   }
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 sm:p-12 overflow-hidden">
+  const overlay = (
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-2xl transition-opacity animate-in fade-in duration-500"
+        className="fixed inset-0 bg-black/80 backdrop-blur-2xl transition-opacity animate-in fade-in duration-500"
         onClick={onClose}
       />
 
+      {/* Centering wrapper — min-h-full so short content stays centered, scrolls when tall */}
+      <div className="relative min-h-full flex items-center justify-center p-6 pt-16 sm:p-12">
       <div className="relative w-full max-w-lg z-10 flex flex-col items-center">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute -top-14 right-0 md:-right-4 w-10 h-10 bg-black/40 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white shadow-xl transition-all z-50 group"
+          className="absolute -top-12 right-0 md:-right-4 w-10 h-10 bg-black/40 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white shadow-xl transition-all z-50 group"
           aria-label="Close overlay"
         >
           <span className="material-symbols-outlined text-[20px] opacity-70 group-hover:opacity-100 transition-opacity">close</span>
@@ -205,6 +213,10 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
           </span>
         </div>
       </div>
+      </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(overlay, document.body);
 }
