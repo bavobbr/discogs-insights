@@ -61,6 +61,9 @@ export function TopAppBar() {
             <Link href="/genre" className={getDesktopNavClass("/genre", "teal")}>
                Genre Matrix
             </Link>
+            <Link href="/artists" className={getDesktopNavClass("/artists", "teal")}>
+               Top Artists
+            </Link>
             <Link href="/decades" className={getDesktopNavClass("/decades", "yellow")}>
                Decade Heatmap
             </Link>
@@ -210,6 +213,10 @@ export function BottomNavBar() {
       <Link href="/genre" className={getNavClass("/genre")}>
         <span className="material-symbols-outlined" style={getIconStyle("/genre")}>pie_chart</span>
         <span className="font-headline font-bold uppercase text-[8px] tracking-widest">GENRE</span>
+      </Link>
+      <Link href="/artists" className={getNavClass("/artists")}>
+        <span className="material-symbols-outlined" style={getIconStyle("/artists")}>person</span>
+        <span className="font-headline font-bold uppercase text-[8px] tracking-widest">ARTISTS</span>
       </Link>
       <Link href="/decades" className={getNavClass("/decades")}>
         <span className="material-symbols-outlined" style={getIconStyle("/decades")}>layers</span>

@@ -468,3 +468,60 @@ export async function fetchCollectionValue(auth?: DiscogsAuth): Promise<Collecti
     return res.json();
   });
 }
+
+export interface ArtistData {
+  id: number;
+  name: string;
+  count: number;
+  releases: DiscogsRelease[];
+  image: string;
+}
+
+/**
+ * Normalizes artist names by removing Discogs-specific suffixes like " (2)".
+ */
+export function normalizeArtistName(name: string): string {
+  return name.replace(/\s\(\d+\)$/, '');
+}
+
+/**
+ * Aggregates releases by artist and sorts them by frequency.
+ */
+export function analyzeArtists(releases: DiscogsRelease[]): ArtistData[] {
+  const artistMap: Record<number, { name: string; count: number; releases: DiscogsRelease[] }> = {};
+
+  for (const r of releases) {
+    if (!r.basic_information.artists) continue;
+    
+    for (const artist of r.basic_information.artists) {
+      if (!artistMap[artist.id]) {
+        artistMap[artist.id] = { name: artist.name, count: 0, releases: [] };
+      }
+      artistMap[artist.id].count++;
+      artistMap[artist.id].releases.push(r);
+    }
+  }
+
+  return Object.entries(artistMap)
+    .filter(([id, data]) => {
+      const normalized = normalizeArtistName(data.name).toLowerCase();
+      // ID 194 is the reserved ID for "Various" in Discogs
+      return id !== '194' && normalized !== 'various' && normalized !== 'various artists';
+    })
+    .map(([id, data]) => {
+      // Find a valid cover image from the artist's releases
+      const validImage = data.releases.find(r => 
+        r.basic_information.cover_image && 
+        !r.basic_information.cover_image.includes('spacer.gif')
+      )?.basic_information.cover_image || '';
+
+      return {
+        id: parseInt(id),
+        name: normalizeArtistName(data.name),
+        count: data.count,
+        releases: data.releases,
+        image: validImage
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+}

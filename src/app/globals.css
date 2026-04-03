@@ -58,3 +58,8 @@ body::after {
 .vinyl-grooves {
   background: repeating-radial-gradient(circle at center, transparent 0, transparent 2px, rgba(255, 255, 255, 0.03) 3px, transparent 4px);
 }
+
+.text-stroke {
+    -webkit-text-stroke: 1px rgba(229, 226, 225, 0.3);
+    color: transparent;
+}
