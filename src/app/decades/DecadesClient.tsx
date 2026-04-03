@@ -14,7 +14,7 @@ export function DecadesClient() {
     }
   }, [isAuthReady, startSync]);
 
-  const { decadeData, totalMapped, peakDecade } = analyzeDecades(releases, masterYears);
+  const { decadeData, totalMapped, peakDecade, uniqueYearsCount } = analyzeDecades(releases, masterYears);
 
   const mapDecade = (
     id: string, label: string, icon: string, iconClass: string, extras?: { translucentBgClass?: string }
@@ -83,7 +83,7 @@ export function DecadesClient() {
               </div>
               <div>
                 <p className="font-headline font-bold uppercase text-[10px] text-on-surface-variant/60 tracking-widest mb-1">Trend Profile</p>
-                <p className="font-body text-lg italic leading-tight">Your collection spans across {totalMapped} distinct release years.</p>
+                <p className="font-body text-lg italic leading-tight">Your collection spans across {uniqueYearsCount} distinct release years.</p>
               </div>
             </div>
             

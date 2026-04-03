@@ -309,12 +309,15 @@ export function analyzeDecades(releases: DiscogsRelease[], masterYears: Record<n
   };
 
   let totalMapped = 0;
+  const uniqueYears = new Set<number>();
 
   for (const r of releases) {
     const masterId = r.basic_information.master_id;
     // Prefer original year from master record; fall back to pressing year
     const year = (masterId && masterId > 0 && masterYears[masterId]) || r.basic_information.year;
     if (!year || year === 0) continue; // Unknown
+    
+    uniqueYears.add(year);
     const cover = r.basic_information.cover_image;
 
     let target = '';
@@ -351,7 +354,7 @@ export function analyzeDecades(releases: DiscogsRelease[], masterYears: Record<n
     }
   }
 
-  return { decadeData: decades, totalMapped, peakDecade };
+  return { decadeData: decades, totalMapped, peakDecade, uniqueYearsCount: uniqueYears.size };
 }
 
 export interface GenreStyleData {
