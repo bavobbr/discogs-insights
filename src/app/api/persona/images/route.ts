@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import fs from 'fs/promises';
-import path from 'path';
+import { readPersonaData, writePersonaData, writePersonaImage } from '@/lib/personaStorage';
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
-const DATA_DIR = path.join(process.cwd(), 'data/persona');
-const IMAGE_CACHE_DIR = path.join(process.cwd(), 'public/images/persona/cache');
 
 export async function POST(request: NextRequest) {
   if (!GEMINI_KEY) {
@@ -15,15 +12,15 @@ export async function POST(request: NextRequest) {
   try {
     const { username = 'guest' } = await request.json();
 
-    const userDataPath = path.join(DATA_DIR, `${username}.json`);
-    const existingData = JSON.parse(await fs.readFile(userDataPath, 'utf8'));
+    const existingData = await readPersonaData(username);
+    if (!existingData) {
+      return NextResponse.json({ error: 'No persona found — generate text persona first' }, { status: 400 });
+    }
 
     const { malePrompt, femalePrompt } = existingData;
     if (!malePrompt || !femalePrompt) {
       return NextResponse.json({ error: 'No prompts found — generate text persona first' }, { status: 400 });
     }
-
-    await fs.mkdir(IMAGE_CACHE_DIR, { recursive: true });
 
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
     // gemini-2.0-flash-exp-image-generation supports inline image output
@@ -40,13 +37,11 @@ export async function POST(request: NextRequest) {
         console.log(`[Gemini:image:${suffix}] ← received in ${Date.now() - t0}ms`);
         const imagePart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
 
-        if (imagePart) {
+        if (imagePart?.inlineData) {
           const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
-          const fileName = `${username}_${Date.now()}_${suffix}.png`;
-          const filePath = path.join(IMAGE_CACHE_DIR, fileName);
-          await fs.writeFile(filePath, buffer);
-          console.log(`[Gemini:image:${suffix}] saved → ${fileName}`);
-          return `/images/persona/cache/${fileName}`;
+          const url = await writePersonaImage(username, suffix, buffer);
+          console.log(`[Gemini:image:${suffix}] saved → ${url}`);
+          return url;
         }
         console.warn(`[Gemini:image:${suffix}] no image part in response`);
         return null;
@@ -65,7 +60,7 @@ export async function POST(request: NextRequest) {
     console.log(`[Gemini:image] ← both done in ${Date.now() - imageT0}ms`);
 
     const updated = { ...existingData, images: { male: maleUrl, female: femaleUrl }, imagesReady: true };
-    await fs.writeFile(userDataPath, JSON.stringify(updated, null, 2));
+    await writePersonaData(username, updated);
 
     return NextResponse.json({ images: { male: maleUrl, female: femaleUrl } });
 

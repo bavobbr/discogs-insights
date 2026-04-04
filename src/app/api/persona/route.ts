@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import fs from 'fs/promises';
-import path from 'path';
+import { readPersonaData, writePersonaData } from '@/lib/personaStorage';
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
-const DATA_DIR = path.join(process.cwd(), 'data/persona');
 
 // Cooldown period: 1 hour in milliseconds
 const COOLDOWN_MS = 60 * 60 * 1000;
@@ -22,22 +20,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No releases provided' }, { status: 400 });
     }
 
-    await fs.mkdir(DATA_DIR, { recursive: true });
-    const userDataPath = path.join(DATA_DIR, `${username}.json`);
-
     // 1. Check Cooldown — return cached result immediately if fresh enough
-    try {
-      const existingData = await fs.readFile(userDataPath, 'utf8');
-      const parsed = JSON.parse(existingData);
-      const now = Date.now();
-      const lastGenerated = new Date(parsed.lastGenerated).getTime();
-
-      if (now - lastGenerated < COOLDOWN_MS) {
+    const existing = await readPersonaData(username);
+    if (existing) {
+      const lastGenerated = new Date(existing.lastGenerated).getTime();
+      if (Date.now() - lastGenerated < COOLDOWN_MS) {
         console.log(`[Persona] Cooldown active for ${username}. Returning cached result.`);
-        return NextResponse.json({ ...parsed, cached: true });
+        return NextResponse.json({ ...existing, cached: true });
       }
-    } catch {
-      // No existing data, continue to generation
     }
 
     // 2. Text Analysis with Gemini (fast phase — returned to client immediately)
@@ -134,7 +124,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Save partial result so the images endpoint can read the prompts
-    await fs.writeFile(userDataPath, JSON.stringify(partialPersona, null, 2));
+    await writePersonaData(username, partialPersona);
 
     return NextResponse.json(partialPersona);
 
