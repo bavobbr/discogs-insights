@@ -70,6 +70,9 @@ export function TopAppBar() {
             <Link href="/vault" className={getDesktopNavClass("/vault", "purple")}>
                The Vault
             </Link>
+            <Link href="/persona" className={getDesktopNavClass("/persona", "primary")}>
+               Persona Profile
+            </Link>
           </nav>
         </div>
         
@@ -225,6 +228,10 @@ export function BottomNavBar() {
       <Link href="/vault" className={getNavClass("/vault")}>
         <span className="material-symbols-outlined" style={getIconStyle("/vault")}>lock</span>
         <span className="font-headline font-bold uppercase text-[8px] tracking-widest">THE VAULT</span>
+      </Link>
+      <Link href="/persona" className={getNavClass("/persona")}>
+        <span className="material-symbols-outlined" style={getIconStyle("/persona")}>analytics</span>
+        <span className="font-headline font-bold uppercase text-[8px] tracking-widest">PERSONA</span>
       </Link>
     </nav>
   );

@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { DiscogsRelease, ReleaseDetails, CollectionValue } from '@/lib/discogs';
+import { enqueueDiscogsRequest } from '@/lib/clientRateLimiter';
 
 interface DiscogsSyncContextType {
   releases: DiscogsRelease[];
@@ -57,6 +58,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   const masterSyncInProgress = useRef(false);
   const isInitialized = useRef(false);
   const vaultMetadataRef = useRef<Record<number, ReleaseDetails>>({});
+  const masterYearsRef = useRef<Record<number, number>>({});
 
   // Constants for localStorage keys
   const STORAGE_KEY_RELEASES = 'vinyl_pulse_releases';
@@ -96,6 +98,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       if (savedMasterYears) {
         try {
           const parsed = JSON.parse(savedMasterYears);
+          masterYearsRef.current = parsed;
           setMasterYears(parsed);
           setMasterSyncedCount(Object.keys(parsed).length);
           console.log(`[Sync] Restored ${Object.keys(parsed).length} master years from storage.`);
@@ -148,7 +151,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
           }
 
           // Fetch collection value in background — works with both OAuth and PAT fallback
-          fetch('/api/discogs/collection-value')
+          enqueueDiscogsRequest(() => fetch('/api/discogs/collection-value'))
             .then(res => res.ok ? res.json() : null)
             .then(val => { if (val) setCollectionValue(val); })
             .catch(() => {});
@@ -185,6 +188,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
   }, [vaultMetadata]);
 
   React.useEffect(() => {
+    masterYearsRef.current = masterYears;
     if (isInitialized.current && Object.keys(masterYears).length > 0) {
       try {
         localStorage.setItem(STORAGE_KEY_MASTER_YEARS, JSON.stringify(masterYears));
@@ -212,7 +216,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
 
     const toFetch = force
       ? uniqueMasterIds
-      : uniqueMasterIds.filter(id => !(id in masterYears));
+      : uniqueMasterIds.filter(id => !(id in masterYearsRef.current));
 
     if (toFetch.length === 0) {
       console.log('[Masters] All master years already cached.');
@@ -235,7 +239,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       let batchCount = 0;
 
       for (const masterId of toFetch) {
-        const res = await fetch(`/api/discogs/master/${masterId}`);
+        const res = await enqueueDiscogsRequest(() => fetch(`/api/discogs/master/${masterId}`));
         if (res.ok) {
           const data = await res.json();
           if (data.year) {
@@ -266,7 +270,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       masterSyncInProgress.current = false;
       console.log('[Masters] Enrichment complete.');
     }
-  }, [masterYears]);
+  }, []);
 
   const startSync = useCallback(async (initialReleases: DiscogsRelease[] = [], totalCount: number = 0, force: boolean = false) => {
     if ((syncInProgress.current || syncCompleted.current) && !force) return;
@@ -298,6 +302,12 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       setTotalItems(totalCount);
     }
 
+    // Track all releases locally so master enrichment always gets the complete set,
+    // even if React hasn't flushed all setReleases calls yet.
+    const seenIds = new Set(initialReleases.map(r => r.id));
+    const allReleases: DiscogsRelease[] = [...initialReleases];
+    let syncedSuccessfully = false;
+
     try {
       let currentPage = 1;
       const perPage = 50;
@@ -309,21 +319,24 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       }
 
       while (hasNext) {
-        const res = await fetch(`/api/discogs/sync?page=${currentPage}&per_page=${perPage}${force ? '&force=true' : ''}`);
+        const res = await enqueueDiscogsRequest(() => fetch(`/api/discogs/sync?page=${currentPage}&per_page=${perPage}${force ? '&force=true' : ''}`));
         if (!res.ok) break;
-        
+
         const data = await res.json();
         const incomingReleases = data.releases as DiscogsRelease[];
-        
+
         if (incomingReleases.length === 0) {
           hasNext = false;
           break;
         }
 
+        const newItems = incomingReleases.filter(r => !seenIds.has(r.id));
+        newItems.forEach(r => seenIds.add(r.id));
+        allReleases.push(...newItems);
+
         setReleases(prev => {
           const existingIds = new Set(prev.map(r => r.id));
-          const newItems = incomingReleases.filter(r => !existingIds.has(r.id));
-          return [...prev, ...newItems];
+          return [...prev, ...incomingReleases.filter(r => !existingIds.has(r.id))];
         });
 
         // Update total items if provided in pagination
@@ -333,10 +346,9 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
 
         if (!data.pagination.urls.next || currentPage >= data.pagination.pages) {
           hasNext = false;
+          syncedSuccessfully = true;
         } else {
           currentPage++;
-          // Minimal delay to let the UI breathe between pages
-          await new Promise(r => setTimeout(r, 100));
         }
       }
     } catch (error) {
@@ -347,13 +359,15 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
       syncCompleted.current = true;
     }
 
-    // After collection sync, kick off master year enrichment in the background
-    // We read from the ref to get the latest releases without needing it as a dep
-    setReleases(currentReleases => {
-      // Fire and forget — runs in background after render
-      setTimeout(() => startMasterEnrichment(currentReleases, force), 500);
-      return currentReleases; // no change, just reading
-    });
+    // Only kick off master enrichment if we have a complete dataset.
+    // Using allReleases (local accumulator) avoids the setReleases-as-reader hack
+    // and ensures we never enrich against partial data from a failed/interrupted sync.
+    if (syncedSuccessfully) {
+      console.log(`[Masters] Sync complete (${allReleases.length} releases). Starting enrichment...`);
+      setTimeout(() => startMasterEnrichment(allReleases, force), 500);
+    } else {
+      console.warn(`[Masters] Sync did not complete cleanly — skipping master enrichment to avoid partial data.`);
+    }
   }, [totalItems, startMasterEnrichment]);
 
   const syncVaultData = useCallback(async (candidateIds: number[]) => {
@@ -373,7 +387,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
         scannedCount++;
 
         if (!vaultMetadataRef.current[id]) {
-          const res = await fetch(`/api/discogs/release/${id}`);
+          const res = await enqueueDiscogsRequest(() => fetch(`/api/discogs/release/${id}`));
           if (res.ok) {
             const details = await res.json();
             batch[id] = details;

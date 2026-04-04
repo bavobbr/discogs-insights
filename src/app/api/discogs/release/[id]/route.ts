@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchReleaseDetails, DiscogsAuth } from '@/lib/discogs';
+import { RateLimitError } from '@/lib/rateLimiter';
 import { cookies } from 'next/headers';
 
 export async function GET(
@@ -40,6 +41,12 @@ export async function GET(
 
     return NextResponse.json(data);
   } catch (error) {
+    if (error instanceof RateLimitError) {
+      return NextResponse.json(
+        { error: 'Rate limited', retryAfterMs: error.retryAfterMs },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(error.retryAfterMs / 1000)) } }
+      );
+    }
     console.error('Release detail API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

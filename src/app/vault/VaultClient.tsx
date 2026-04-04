@@ -17,12 +17,18 @@ export function VaultClient() {
     syncVaultData,
     isSyncing,
     vaultScannedCount,
-    vaultTotalCount
+    vaultTotalCount,
+    startSync,
+    isAuthReady,
   } = useDiscogsSync();
   const [selectedRelease, setSelectedRelease] = React.useState<DiscogsRelease | null>(null);
 
-  // Identify candidates for the vault
-  // (unused, can be used for deep scanning logic in future)
+  // Ensure releases are loaded (mirrors pattern used by Dashboard/Genre/Decades)
+  useEffect(() => {
+    if (isAuthReady) {
+      startSync();
+    }
+  }, [isAuthReady, startSync]);
 
   // Trigger a full collection scan for the vault
   useEffect(() => {

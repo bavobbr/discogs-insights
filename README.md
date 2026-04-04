@@ -19,6 +19,7 @@ A progressive web application (PWA) built to analyze, visualize, and explore you
 | **Deployment** | [Vercel](https://vercel.com) |
 | **Analytics** | [Vercel Analytics](https://vercel.com/analytics) |
 | **Tooling** | ESLint, PostCSS |
+| **Generative AI** | [Google Gemini 2.0/3.1](https://ai.google.dev/) (Text & Images) |
 
 ---
 
@@ -46,6 +47,14 @@ A dedicated analytics page for deep-diving into the most significant records in 
 - **Most Coveted** — Records with the highest want/have community ratio.
 - **Hidden Gems** — Personal 5-star favorites that are rare in the wild (low "have" count).
 - **Archive Integrity Meter** — Live progress bar tracking how many records have been deep-scanned.
+
+### 🎨 Sonic Persona (AI Insights)
+An immersive, AI-driven analysis of your musical "soul" based on your latest record acquisitions:
+- **Incisive Critique** — Uses **Gemini 2.0 Flash** to generate a sharp, poetic, and slightly judgmental musical persona (e.g., *"The Belgian Post-Punk Architect"*).
+- **Dynamic Avatars** — Generates unique masculine and feminine avatars matching your persona's vibe using **Imagen 4 / Gemini 3.1**.
+- **Micro-Scenes** — Identifies 3 hyper-specific sub-genres or "scenes" current in your collection.
+- **Backend Persistence** — Saves generated personas and images to a local backend cache (`data/persona/`) to protect your API quota.
+- **1-Hour Cooldown** — Built-in rate limiting ensures the AI doesn't over-analyze your soul too frequently.
 
 ### 🏷️ The Imprint (Label Analytics)
 - A visualization of your collection's **record label distribution** and **geographical pressing origins**.
@@ -83,9 +92,11 @@ A dedicated analytics page for deep-diving into the most significant records in 
     │   │       ├── master/         # Master release year lookup
     │   │       ├── release/[id]/   # Single release detail
     │   │       ├── price-suggestions/ # Marketplace price data
+    │   │       ├── persona/        # AI Persona & Image generation
     │   │       └── sync/           # Collection sync endpoint
     │   ├── decades/        # "Decade Heatmap" visualization page
     │   ├── genre/          # "Genre Matrix" drill-down page
+    │   ├── persona/        # "Sonic Persona" AI dashboard
     │   ├── vault/          # "The Vault" private archive page
     │   ├── globals.css     # Global styles and Tailwind directives
     │   ├── layout.tsx      # Root application layout
@@ -129,6 +140,9 @@ DISCOGS_USERNAME=your_discogs_username
 DISCOGS_CONSUMER_KEY=your_app_consumer_key
 DISCOGS_CONSUMER_SECRET=your_app_consumer_secret
 DISCOGS_CALLBACK_URL=http://localhost:3000/api/auth/callback
+
+# --- AI Insights (Google AI Studio) ---
+GEMINI_KEY=your_google_ai_studio_api_key
 
 # --- Optional ---
 DEV_LIMIT=500  # Cap the number of records fetched during sync (useful for development)

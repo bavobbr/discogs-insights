@@ -1,80 +1,83 @@
 /**
- * Centralized per-user Discogs API rate limiter & request queue.
+ * Server-side Discogs rate-limit guard.
  *
- * All routes that call the Discogs API should route through `enqueueDiscogsRequest`.
- * This ensures we never exceed ~50 req/min per user, regardless of how many concurrent
- * Next.js route handlers are running.
+ * In production (Vercel serverless), module-level state does NOT persist across
+ * invocations — each function instance is isolated. We use Vercel KV (Redis) to
+ * share the last-request timestamp across instances.
  *
- * Module-level state persists across requests within the same Node.js process.
- * In dev and standard prod deployments (single server), this is a true global queue.
+ * In local development (`next dev` is a persistent Node process), we fall back to
+ * an in-memory Map — which works correctly because the process never restarts.
+ *
+ * This is a FAST-FAIL guard, not a queue. It never sleeps. The client owns pacing
+ * (see clientRateLimiter.ts). If called too soon, it throws RateLimitError and the
+ * route returns 429 — the client handles the retry.
  */
 
-const MIN_INTERVAL_MS = 1200; // ~50 req/min, safely under Discogs' 60/min limit
+import { kv } from '@vercel/kv';
 
-interface QueueEntry<T = unknown> {
-  task: () => Promise<T>;
-  resolve: (value: T) => void;
-  reject: (reason: unknown) => void;
+const MIN_INTERVAL_MS = 1200;
+// 300ms grace: accounts for setTimeout imprecision (~50-100ms) and Next.js dev-mode
+// module re-initialization across lazy-compiled routes. Server threshold = 900ms,
+// which is safely under Discogs's actual 1000ms (60 req/min) limit.
+const GRACE_MS = 300;
+const KV_TTL_SECONDS = 10; // auto-expire stale keys
+
+const isKvAvailable = !!process.env.KV_REST_API_URL;
+
+// Use globalThis so the Map survives Next.js hot-module re-initialization in dev.
+// Each route compiles separately and would otherwise get a fresh module instance.
+const g = globalThis as typeof globalThis & {
+  _rateLimiterLastRequestAt?: Map<string, number>;
+};
+if (!g._rateLimiterLastRequestAt) {
+  g._rateLimiterLastRequestAt = new Map<string, number>();
+}
+const localLastRequestAt = g._rateLimiterLastRequestAt;
+
+export class RateLimitError extends Error {
+  constructor(public readonly retryAfterMs: number) {
+    super(`Rate limited — retry after ${retryAfterMs}ms`);
+    this.name = 'RateLimitError';
+  }
 }
 
-// Per-user queues keyed by username (or 'guest' for Personal Access Token users)
-const userQueues = new Map<string, QueueEntry[]>();
-const activeProcessors = new Set<string>();
-const lastRequestAt = new Map<string, number>();
-
-async function drain(userKey: string): Promise<void> {
-  // Only one drain loop per user at a time
-  if (activeProcessors.has(userKey)) return;
-  activeProcessors.add(userKey);
-
-  const queue = userQueues.get(userKey)!;
-
-  while (queue.length > 0) {
-    const entry = queue.shift()!;
-
-    // Enforce the minimum interval since the last real request for this user
-    const last = lastRequestAt.get(userKey) ?? 0;
-    const elapsed = Date.now() - last;
-    const waitMs = MIN_INTERVAL_MS - elapsed;
-    if (waitMs > 0) {
-      await new Promise(r => setTimeout(r, waitMs));
-    }
-
-    lastRequestAt.set(userKey, Date.now());
-
-    try {
-      const result = await (entry as QueueEntry<unknown>).task();
-      (entry as QueueEntry<unknown>).resolve(result);
-    } catch (err) {
-      entry.reject(err);
-    }
+async function getLastRequestAt(userKey: string): Promise<number | null> {
+  if (isKvAvailable) {
+    return kv.get<number>(`discogs:lastRequest:${userKey}`);
   }
+  return localLastRequestAt.get(userKey) ?? null;
+}
 
-  activeProcessors.delete(userKey);
+async function setLastRequestAt(userKey: string, timestamp: number): Promise<void> {
+  if (isKvAvailable) {
+    await kv.set(`discogs:lastRequest:${userKey}`, timestamp, { ex: KV_TTL_SECONDS });
+  } else {
+    localLastRequestAt.set(userKey, timestamp);
+  }
 }
 
 /**
- * Enqueue a Discogs API task for a specific user. Returns a promise that resolves
- * when the task has been executed (after waiting its turn in the queue).
- *
- * @param userKey - A stable identifier for the user ('guest' for PAT users, or their username)
- * @param task    - An async function that makes the actual API call and returns data
+ * Check the rate limit for a user and execute the task if allowed.
+ * Throws RateLimitError immediately if called too soon — never sleeps.
  */
-export function enqueueDiscogsRequest<T>(
+export async function enqueueDiscogsRequest<T>(
   userKey: string,
   task: () => Promise<T>
 ): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    if (!userQueues.has(userKey)) {
-      userQueues.set(userKey, []);
-    }
+  const lastAt = await getLastRequestAt(userKey);
 
-    userQueues.get(userKey)!.push({ task, resolve, reject } as QueueEntry);
-    drain(userKey); // kick off the drain loop if not already running
-  });
+  if (lastAt !== null) {
+    const elapsed = Date.now() - lastAt;
+    if (elapsed < MIN_INTERVAL_MS - GRACE_MS) {
+      throw new RateLimitError(MIN_INTERVAL_MS - elapsed);
+    }
+  }
+
+  await setLastRequestAt(userKey, Date.now());
+  return task();
 }
 
-/** Returns the current queue depth for a user (useful for debugging). */
-export function getQueueDepth(userKey: string): number {
-  return userQueues.get(userKey)?.length ?? 0;
+/** Returns current queue depth — always 0 now, kept for API compatibility. */
+export function getQueueDepth(_userKey: string): number {
+  return 0;
 }
