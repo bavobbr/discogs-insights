@@ -19,7 +19,8 @@ A progressive web application (PWA) built to analyze, visualize, and explore you
 | **Deployment** | [Vercel](https://vercel.com) |
 | **Analytics** | [Vercel Analytics](https://vercel.com/analytics) |
 | **Tooling** | ESLint, PostCSS |
-| **Generative AI** | [Google Gemini 2.0/3.1](https://ai.google.dev/) (Text & Images) |
+| **Generative AI** | [Google Gemini 2.5 Flash / gemini-3.1-flash-image-preview](https://ai.google.dev/) (Text & Images) |
+| **Storage** | [Vercel KV](https://vercel.com/storage/kv) (personas) · [Vercel Blob](https://vercel.com/storage/blob) (images) |
 
 ---
 
@@ -39,7 +40,7 @@ A progressive web application (PWA) built to analyze, visualize, and explore you
 ### 📅 Original Release Year Enrichment
 - Fetches **Discogs Master Records** to resolve the original release year for re-issues.
 - Stores enriched year data in sync context so visualizations reflect when music was *created*, not when your pressing was manufactured.
-- Built-in per-user API rate limiting ensures smooth background enrichment without hitting Discogs' rate caps.
+- Rate limiting is handled by the client-side request queue (`clientRateLimiter.ts`), which paces all Discogs API calls across collection sync, master lookups, and vault enrichment.
 
 ### 🗄️ The Vault
 A dedicated analytics page for deep-diving into the most significant records in your collection:
@@ -50,10 +51,11 @@ A dedicated analytics page for deep-diving into the most significant records in 
 
 ### 🎨 Sonic Persona (AI Insights)
 An immersive, AI-driven analysis of your musical "soul" based on your latest record acquisitions:
-- **Incisive Critique** — Uses **Gemini 2.0 Flash** to generate a sharp, poetic, and slightly judgmental musical persona (e.g., *"The Belgian Post-Punk Architect"*).
-- **Dynamic Avatars** — Generates unique masculine and feminine avatars matching your persona's vibe using **Imagen 4 / Gemini 3.1**.
-- **Micro-Scenes** — Identifies 3 hyper-specific sub-genres or "scenes" current in your collection.
-- **Backend Persistence** — Saves generated personas and images to a local backend cache (`data/persona/`) to protect your API quota.
+- **Incisive Critique** — Uses **Gemini 2.5 Flash** to generate a sharp, poetic, and professional-critic-toned musical persona (e.g., *"The Belgian Post-Punk Architect"*). The prompt style is modeled on Pitchfork/The Wire editorial voice — no conversational filler.
+- **Dynamic Avatars** — Generates unique masculine and feminine avatars matching your persona's vibe using **gemini-3.1-flash-image-preview**. Image generation includes automatic retry with a minimal safe fallback prompt if the primary AI-generated prompt is refused.
+- **Micro-Scenes** — Identifies 3 hyper-specific sub-genres or "scenes" in your collection, each with a signature record.
+- **Two-Phase Generation** — Text analysis (fast, returned immediately) and image generation (parallel, separate request) are decoupled so the UI can render persona text while avatars load.
+- **Cloud Persistence** — In production, persona JSON is stored in **Vercel KV** (7-day TTL) and avatar images in **Vercel Blob** (public CDN URLs). In local development the same data falls back to `data/persona/*.json` and `public/images/persona/cache/`.
 - **1-Hour Cooldown** — Built-in rate limiting ensures the AI doesn't over-analyze your soul too frequently.
 
 ### 🏷️ The Imprint (Label Analytics)
@@ -88,12 +90,15 @@ An immersive, AI-driven analysis of your musical "soul" based on your latest rec
     ├── app/                # Next.js App Router pages and layouts
     │   ├── api/
     │   │   ├── auth/       # OAuth 1.0a routes (login, callback, logout, me)
-    │   │   └── discogs/
-    │   │       ├── master/         # Master release year lookup
-    │   │       ├── release/[id]/   # Single release detail
-    │   │       ├── price-suggestions/ # Marketplace price data
-    │   │       ├── persona/        # AI Persona & Image generation
-    │   │       └── sync/           # Collection sync endpoint
+    │   │   ├── discogs/
+    │   │   │   ├── master/             # Master release year lookup
+    │   │   │   ├── release/[id]/       # Single release detail
+    │   │   │   ├── price-suggestions/  # Marketplace price data (rate-limited)
+    │   │   │   ├── collection-value/   # Collection value aggregation
+    │   │   │   └── sync/               # Collection sync endpoint
+    │   │   └── persona/
+    │   │       ├── route.ts            # AI text persona generation (Gemini 2.5 Flash)
+    │   │       └── images/             # AI avatar image generation (gemini-3.1-flash-image-preview)
     │   ├── decades/        # "Decade Heatmap" visualization page
     │   ├── genre/          # "Genre Matrix" drill-down page
     │   ├── persona/        # "Sonic Persona" AI dashboard
@@ -112,10 +117,45 @@ An immersive, AI-driven analysis of your musical "soul" based on your latest rec
     │   └── DiscogsSyncContext.tsx  # Global sync engine, OAuth user state, vault metadata
     │
     └── lib/
-        ├── discogs.ts      # Discogs API wrapper and data processing
-        ├── oauth.ts        # OAuth 1.0a helpers (request/access token, identity)
-        └── rateLimiter.ts  # Per-user API request queue (~50 req/min)
+        ├── discogs.ts            # Discogs API wrapper and data processing
+        ├── oauth.ts              # OAuth 1.0a helpers (request/access token, identity)
+        ├── rateLimiter.ts        # Server-side fast-fail rate limit guard (Vercel KV in prod, in-memory in dev)
+        ├── clientRateLimiter.ts  # Client-side request queue — paces all Discogs API calls at ~50 req/min
+        └── personaStorage.ts     # Persona persistence abstraction (Vercel KV + Blob in prod, filesystem in dev)
 ```
+
+---
+
+## 🏗️ Architecture Notes
+
+### Discogs Rate Limiting (Two-Layer Design)
+
+Discogs enforces a hard limit of ~60 requests/minute per user. The app handles this with two cooperating layers:
+
+| Layer | Location | Mechanism |
+|-------|----------|-----------|
+| **Client queue** (`clientRateLimiter.ts`) | Browser | A tab-scoped FIFO queue. Every Discogs fetch call goes through `enqueueDiscogsRequest`, which spaces requests at a minimum 1200ms interval. This is the primary pacing mechanism. |
+| **Server guard** (`rateLimiter.ts`) | API routes | A fast-fail check — never sleeps. If a request arrives before the interval has elapsed, it throws `RateLimitError` and the route returns HTTP 429 with a `retryAfterMs` body. The client queue catches this and retries after the suggested delay. |
+
+In production the server guard persists last-request timestamps in **Vercel KV** so the state is shared across serverless function instances. In local dev it falls back to a `globalThis` Map.
+
+Gemini and OAuth calls are **not** routed through the Discogs rate limiter.
+
+### Persona Storage Abstraction
+
+`personaStorage.ts` provides a unified API (`readPersonaData`, `writePersonaData`, `writePersonaImage`) that routes to different backends depending on the environment:
+
+| Asset | Production | Local dev |
+|-------|-----------|-----------|
+| Persona JSON | Vercel KV (`persona:<username>`, 7-day TTL) | `data/persona/<username>.json` |
+| Avatar images | Vercel Blob (`persona/<filename>.png`, public CDN) | `public/images/persona/cache/<filename>.png` |
+
+Route handlers import only from `personaStorage.ts` — no direct `fs`, `kv`, or `blob` calls in route files.
+
+### Sonic Persona Generation Pipeline
+
+1. **POST `/api/persona`** — sends a shuffled 500-record snapshot to **Gemini 2.5 Flash** with a `thinkingBudget` of 1500 tokens. Returns the text persona (title, description, micro-scenes, signature record) immediately and saves a partial result to storage.
+2. **POST `/api/persona/images`** — reads the saved `malePrompt`/`femalePrompt` from storage and calls **gemini-3.1-flash-image-preview** in parallel for both avatars. Each generation gets two attempts: first with the AI-generated prompt, then with a minimal safe fallback prompt if the first is refused. Images are stored via `writePersonaImage` and the final record is updated in storage.
 
 ---
 
@@ -143,6 +183,13 @@ DISCOGS_CALLBACK_URL=http://localhost:3000/api/auth/callback
 
 # --- AI Insights (Google AI Studio) ---
 GEMINI_KEY=your_google_ai_studio_api_key
+
+# --- Vercel Storage (production only — omit in local dev to use filesystem fallbacks) ---
+# Persona JSON + rate-limit state → Vercel KV
+KV_REST_API_URL=your_kv_rest_api_url
+KV_REST_API_TOKEN=your_kv_rest_api_token
+# Persona avatar images → Vercel Blob
+BLOB_READ_WRITE_TOKEN=your_blob_read_write_token
 
 # --- Optional ---
 DEV_LIMIT=500  # Cap the number of records fetched during sync (useful for development)
@@ -174,6 +221,10 @@ Set the following environment variables in your **Vercel project settings**:
 | `DISCOGS_CONSUMER_KEY` | OAuth app consumer key |
 | `DISCOGS_CONSUMER_SECRET` | OAuth app consumer secret |
 | `DISCOGS_CALLBACK_URL` | Production callback URL, e.g. `https://discogs-insights.vercel.app/api/auth/callback` |
+| `GEMINI_KEY` | Google AI Studio API key (for Sonic Persona text + image generation) |
+| `KV_REST_API_URL` | Vercel KV REST endpoint — used for rate limiting state and persona JSON storage |
+| `KV_REST_API_TOKEN` | Vercel KV auth token (provisioned automatically when you add a KV store to your project) |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token — used to store persona avatar images on the CDN |
 | `DEV_LIMIT` | *(Optional)* Cap collection size for performance testing |
 
 > **Important**: Remember to add your production callback URL (`https://your-app.vercel.app/api/auth/callback`) to your Discogs application's allowed callback URLs in the developer settings.

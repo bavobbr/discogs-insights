@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchCollection, DiscogsAuth } from '@/lib/discogs';
 import { RateLimitError } from '@/lib/rateLimiter';
 import { cookies } from 'next/headers';
+import { isGuestUser, readCollectionPage, writeCollectionPage } from '@/lib/discogsCache';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -24,6 +25,15 @@ export async function GET(request: NextRequest) {
       };
     } catch (e) {
       console.error('Failed to parse discogs session cookie:', e);
+    }
+  }
+
+  // For the guest/default user, serve from KV cache when available (skip on force refresh)
+  const guestRequest = isGuestUser(auth?.username);
+  if (guestRequest && !force) {
+    const cached = await readCollectionPage(process.env.DISCOGS_USERNAME || 'bavobbr', page, perPage);
+    if (cached) {
+      return NextResponse.json(cached);
     }
   }
 
@@ -54,6 +64,12 @@ export async function GET(request: NextRequest) {
           pagination: { ...data.pagination, urls: {}, pages: page },
         });
       }
+    }
+
+    // Populate KV cache for the guest user so subsequent sessions skip Discogs
+    if (guestRequest) {
+      const username = process.env.DISCOGS_USERNAME || 'bavobbr';
+      writeCollectionPage(username, page, perPage, data).catch(() => {});
     }
 
     return NextResponse.json(data);

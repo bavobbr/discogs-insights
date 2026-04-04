@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchReleaseDetails, DiscogsAuth } from '@/lib/discogs';
 import { RateLimitError } from '@/lib/rateLimiter';
 import { cookies } from 'next/headers';
+import { readReleaseDetails, writeReleaseDetails } from '@/lib/discogsCache';
 
 export async function GET(
   _request: NextRequest,
@@ -33,12 +34,16 @@ export async function GET(
   }
 
   try {
+    const cached = await readReleaseDetails(id);
+    if (cached) return NextResponse.json(cached);
+
     const data = await fetchReleaseDetails(id, auth);
-    
+
     if (!data) {
       return NextResponse.json({ error: 'Failed to fetch from Discogs' }, { status: 500 });
     }
 
+    writeReleaseDetails(id, data).catch(() => {});
     return NextResponse.json(data);
   } catch (error) {
     if (error instanceof RateLimitError) {

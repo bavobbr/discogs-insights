@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchMasterYear, DiscogsAuth } from '@/lib/discogs';
 import { RateLimitError } from '@/lib/rateLimiter';
 import { cookies } from 'next/headers';
+import { readMasterYear, writeMasterYear } from '@/lib/discogsCache';
 
 export async function GET(
   _request: NextRequest,
@@ -33,7 +34,15 @@ export async function GET(
   }
 
   try {
+    const cached = await readMasterYear(id);
+    if (cached !== null) {
+      // 0 is the sentinel for "Discogs has no year for this master"
+      return NextResponse.json({ id, year: cached > 0 ? cached : null });
+    }
+
     const year = await fetchMasterYear(id, auth);
+
+    writeMasterYear(id, year).catch(() => {});
 
     // fetchMasterYear returns null on failure; 404s are normal (no master linked)
     if (year === null) {
