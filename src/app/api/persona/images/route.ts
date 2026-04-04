@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { readPersonaData, writePersonaData, writePersonaImage } from '@/lib/personaStorage';
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username = 'guest' } = await request.json();
+    const { username = 'guest' } = await request.json() as { username?: string };
 
     const existingData = await readPersonaData(username);
     if (!existingData) {
@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-    // gemini-2.0-flash-exp-image-generation supports inline image output
     const imageModel = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-image-preview' });
 
     const FALLBACK_PROMPTS: Record<string, string> = {
@@ -37,17 +36,22 @@ export async function POST(request: NextRequest) {
         const t0 = Date.now();
         const result = await imageModel.generateContent({
           contents: [{ role: 'user', parts: [{ text: p }] }],
+          // responseModalities is an experimental field not yet in the SDK types
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } as any,
         });
         console.log(`[Gemini:image:${suffix}] ← received in ${Date.now() - t0}ms`);
 
-        const imagePart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
-        if (imagePart?.inlineData) {
-          return imagePart.inlineData as { data: string; mimeType: string };
+        const parts: Part[] = result.response.candidates?.[0]?.content?.parts ?? [];
+        const imagePart = parts.find((p): p is Part & { inlineData: { data: string; mimeType: string } } =>
+          'inlineData' in p && p.inlineData !== undefined
+        );
+        if (imagePart) {
+          return imagePart.inlineData;
         }
 
         // Log the refusal text so we can diagnose prompt issues
-        const textPart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.text);
+        const textPart = parts.find((p): p is Part & { text: string } => 'text' in p && typeof p.text === 'string');
         const finishReason = result.response.candidates?.[0]?.finishReason;
         console.warn(`[Gemini:image:${suffix}] no image (attempt ${attempt}). finishReason=${finishReason} text="${textPart?.text?.slice(0, 200)}"`);
         return null;
@@ -78,8 +82,8 @@ export async function POST(request: NextRequest) {
     console.log(`[Gemini:image] → starting parallel generation for ${username}`);
     const imageT0 = Date.now();
     const [maleUrl, femaleUrl] = await Promise.all([
-      generateImage(malePrompt, 'male'),
-      generateImage(femalePrompt, 'female'),
+      generateImage(malePrompt as string, 'male'),
+      generateImage(femalePrompt as string, 'female'),
     ]);
     console.log(`[Gemini:image] ← both done in ${Date.now() - imageT0}ms`);
 

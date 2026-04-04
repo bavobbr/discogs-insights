@@ -78,6 +78,6 @@ export async function enqueueDiscogsRequest<T>(
 }
 
 /** Returns current queue depth — always 0 now, kept for API compatibility. */
-export function getQueueDepth(_userKey: string): number {
+export function getQueueDepth(): number {
   return 0;
 }

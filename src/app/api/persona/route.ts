@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { readPersonaData, writePersonaData } from '@/lib/personaStorage';
+import { DiscogsRelease } from '@/lib/discogs';
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
 
 // Cooldown period: 1 hour in milliseconds
 const COOLDOWN_MS = 60 * 60 * 1000;
+
+interface MicroScene {
+  signatureRecordId?: number;
+  [key: string]: unknown;
+}
+
+interface GeminiTextResponse {
+  microScenes?: MicroScene[];
+  signatureRecordId?: number;
+  [key: string]: unknown;
+}
 
 export async function POST(request: NextRequest) {
   if (!GEMINI_KEY) {
@@ -13,7 +25,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { releases, username: rawUsername } = await request.json();
+    const { releases, username: rawUsername } = await request.json() as {
+      releases: DiscogsRelease[];
+      username?: string;
+    };
     const username = rawUsername || process.env.DISCOGS_USERNAME || 'guest';
 
     if (!releases || !Array.isArray(releases) || releases.length === 0) {
@@ -36,17 +51,16 @@ export async function POST(request: NextRequest) {
     // Shuffle before slicing so the snapshot is representative across the full collection,
     // not just the most-recently-added records (Discogs default sort order).
     const shuffled = [...releases].sort(() => Math.random() - 0.5);
-    const analysisSnapshot = shuffled.slice(0, snapshotCap).map((r: any) => ({
+    const analysisSnapshot = shuffled.slice(0, snapshotCap).map((r: DiscogsRelease) => ({
       id: r.id,
-      artist: r.basic_information.artists.map((a: any) => a.name).join(', '),
+      artist: r.basic_information.artists.map(a => a.name).join(', '),
       title: r.basic_information.title,
       genres: r.basic_information.genres,
       styles: r.basic_information.styles,
     }));
 
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-    // thinkingBudget: 0 disables chain-of-thought reasoning — cuts latency from ~25s to ~3s
-    // for structured JSON tasks that don't benefit from extended thinking.
+    // thinkingBudget limits chain-of-thought reasoning — cuts latency for structured JSON tasks.
     const textModel = genAI.getGenerativeModel(
       { model: 'gemini-2.5-flash' },
       { apiVersion: 'v1beta' }
@@ -81,31 +95,32 @@ export async function POST(request: NextRequest) {
     const textT0 = Date.now();
     const textResult = await textModel.generateContent({
       contents: [{ role: 'user', parts: [{ text: textPrompt }] }],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       generationConfig: { thinkingConfig: { thinkingBudget: 1500 } } as any,
     });
     console.log(`[Gemini:text] ← received in ${Date.now() - textT0}ms`);
-    const textData = JSON.parse(textResult.response.text().match(/\{[\s\S]*\}/)![0]);
+    const textData = JSON.parse(textResult.response.text().match(/\{[\s\S]*\}/)![0]) as GeminiTextResponse;
 
     // Build a lookup map for O(1) resolution
-    const releaseById = new Map(releases.map((r: any) => [r.id, r]));
+    const releaseById = new Map(releases.map((r: DiscogsRelease) => [r.id, r]));
 
     const resolveRecord = (id: number) => {
       const match = releaseById.get(id);
       if (!match) return null;
       return {
-        artist: match.basic_information.artists.map((a: any) => a.name).join(', '),
+        artist: match.basic_information.artists.map(a => a.name).join(', '),
         title: match.basic_information.title,
         cover: match.basic_information.cover_image ?? null,
       };
     };
 
-    const signatureResolved = resolveRecord(textData.signatureRecordId);
+    const signatureResolved = resolveRecord(textData.signatureRecordId ?? 0);
     const signatureRecord = signatureResolved ? { artist: signatureResolved.artist, title: signatureResolved.title } : null;
     const signatureCover = signatureResolved?.cover ?? null;
 
     // Resolve per-scene signature records
-    const microScenes = (textData.microScenes ?? []).map((scene: any) => {
-      const resolved = resolveRecord(scene.signatureRecordId);
+    const microScenes = (textData.microScenes ?? []).map((scene: MicroScene) => {
+      const resolved = resolveRecord(scene.signatureRecordId ?? 0);
       return {
         ...scene,
         signatureRecord: resolved ? { artist: resolved.artist, title: resolved.title } : null,
@@ -124,7 +139,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Save partial result so the images endpoint can read the prompts
-    await writePersonaData(username, partialPersona);
+    await writePersonaData(username, partialPersona as Parameters<typeof writePersonaData>[1]);
 
     return NextResponse.json(partialPersona);
 
