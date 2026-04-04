@@ -43,3 +43,7 @@ next-env.d.ts
 # local tooling
 .claude/
 .playwright-mcp/
+
+# local dev data (persona cache, generated images)
+/data/
+/public/images/persona/

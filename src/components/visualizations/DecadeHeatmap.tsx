@@ -48,7 +48,7 @@ export function DecadeHeatmap({ data }: { data: DecadeData[] }) {
           <div key={idx} className="relative w-full h-full">
             <Image
               alt={`${decade.id} mosaic tile`}
-              className="object-cover opacity-60 mix-blend-luminosity hover:mix-blend-normal hover:opacity-100 transition-all duration-500"
+              className="object-cover opacity-60 mix-blend-luminosity group-hover:mix-blend-normal group-hover:opacity-100 transition-all duration-500"
               src={img}
               fill
               sizes="(max-width: 768px) 33vw, 25vw"
