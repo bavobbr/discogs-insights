@@ -69,8 +69,8 @@ export async function POST(request: NextRequest) {
           { "id": 1, "title": "Specific Scene Name", "description": "Analysis", "tags": ["A", "B"], "color": "primary", "signatureRecordId": 12345 }
         ],
         "signatureRecordId": 12345,
-        "malePrompt": "Professional photography prompt for a male-adjacent avatar matching this vibe.",
-        "femalePrompt": "Professional photography prompt for a female-adjacent avatar matching this vibe."
+        "malePrompt": "Illustrated artistic portrait of a male music listener who embodies this collection's vibe. Style: graphic novel cover art, painterly, not photorealistic. No text.",
+        "femalePrompt": "Illustrated artistic portrait of a female music listener who embodies this collection's vibe. Style: graphic novel cover art, painterly, not photorealistic. No text."
       }
 
       For signatureRecordId: the single record that best crystallises the entire persona. Must be an id from the collection snapshot.

@@ -26,27 +26,51 @@ export async function POST(request: NextRequest) {
     // gemini-2.0-flash-exp-image-generation supports inline image output
     const imageModel = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-image-preview' });
 
+    const FALLBACK_PROMPTS: Record<string, string> = {
+      male:   'Illustrated artistic portrait of a male music lover. Abstract, painterly style. No text.',
+      female: 'Illustrated artistic portrait of a female music lover. Abstract, painterly style. No text.',
+    };
+
     const generateImage = async (prompt: string, suffix: string): Promise<string | null> => {
-      console.log(`[Gemini:image:${suffix}] → sending prompt for ${username}: "${prompt.slice(0, 80)}..."`);
-      const t0 = Date.now();
-      try {
+      const attemptGenerate = async (p: string, attempt: number): Promise<{ data: string; mimeType: string } | null> => {
+        console.log(`[Gemini:image:${suffix}] attempt ${attempt} → "${p.slice(0, 80)}..."`);
+        const t0 = Date.now();
         const result = await imageModel.generateContent({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          contents: [{ role: 'user', parts: [{ text: p }] }],
           generationConfig: { responseModalities: ['IMAGE', 'TEXT'] } as any,
         });
         console.log(`[Gemini:image:${suffix}] ← received in ${Date.now() - t0}ms`);
-        const imagePart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
 
+        const imagePart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
         if (imagePart?.inlineData) {
-          const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
-          const url = await writePersonaImage(username, suffix, buffer);
-          console.log(`[Gemini:image:${suffix}] saved → ${url}`);
-          return url;
+          return imagePart.inlineData as { data: string; mimeType: string };
         }
-        console.warn(`[Gemini:image:${suffix}] no image part in response`);
+
+        // Log the refusal text so we can diagnose prompt issues
+        const textPart = result.response.candidates?.[0]?.content?.parts?.find((p: any) => p.text);
+        const finishReason = result.response.candidates?.[0]?.finishReason;
+        console.warn(`[Gemini:image:${suffix}] no image (attempt ${attempt}). finishReason=${finishReason} text="${textPart?.text?.slice(0, 200)}"`);
         return null;
+      };
+
+      try {
+        // Attempt 1: use the AI-generated prompt
+        let inlineData = await attemptGenerate(prompt, 1);
+
+        // Attempt 2: fall back to a minimal safe prompt
+        if (!inlineData) {
+          console.warn(`[Gemini:image:${suffix}] retrying with fallback prompt`);
+          inlineData = await attemptGenerate(FALLBACK_PROMPTS[suffix] ?? prompt, 2);
+        }
+
+        if (!inlineData) return null;
+
+        const buffer = Buffer.from(inlineData.data, 'base64');
+        const url = await writePersonaImage(username, suffix, buffer);
+        console.log(`[Gemini:image:${suffix}] saved → ${url}`);
+        return url;
       } catch (e) {
-        console.error(`[Gemini:image:${suffix}] failed after ${Date.now() - t0}ms:`, e);
+        console.error(`[Gemini:image:${suffix}] failed:`, e);
         return null;
       }
     };

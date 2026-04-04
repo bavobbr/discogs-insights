@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { LightweightRelease } from './RecentGrid';
 import { PriceSuggestions } from '@/lib/discogs';
+import { enqueueDiscogsRequest } from '@/lib/clientRateLimiter';
 
 export function RecordOverlay({ release, onClose }: { release: LightweightRelease, onClose: () => void }) {
   const [suggestions, setSuggestions] = React.useState<PriceSuggestions | null>(null);
@@ -17,7 +18,7 @@ export function RecordOverlay({ release, onClose }: { release: LightweightReleas
     // Fetch price suggestions in parallel
     if (release?.releaseId) {
       setLoadingSuggestions(true);
-      fetch(`/api/discogs/price-suggestions/${release.releaseId}`)
+      enqueueDiscogsRequest(() => fetch(`/api/discogs/price-suggestions/${release.releaseId}`))
         .then(res => res.json())
         .then(data => {
           setSuggestions(data);
