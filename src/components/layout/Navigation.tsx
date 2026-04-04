@@ -112,15 +112,17 @@ export function TopAppBar() {
                 )}
               </div>
             )}
-            <button 
-              onClick={handleRefresh}
-              disabled={isAnySyncing}
-              title="Force Refresh Collection"
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 active:scale-95 transition-all group ${isAnySyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <span className={`material-symbols-outlined text-sm ${isAnySyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`}>sync</span>
-              <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">Refresh</span>
-            </button>
+            {user && (
+              <button
+                onClick={handleRefresh}
+                disabled={isAnySyncing}
+                title="Force Refresh Collection"
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 hover:bg-white/5 active:scale-95 transition-all group ${isAnySyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span className={`material-symbols-outlined text-sm ${isAnySyncing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`}>sync</span>
+                <span className="text-[10px] font-bold text-on-surface uppercase tracking-widest">Refresh</span>
+              </button>
+            )}
           </div>
 
           <div className="relative">
