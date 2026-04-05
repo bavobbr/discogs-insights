@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(GEMINI_KEY);
     // thinkingBudget limits chain-of-thought reasoning — cuts latency for structured JSON tasks.
     const textModel = genAI.getGenerativeModel(
-      { model: 'gemini-2.5-flash' },
+      { model: 'gemini-3-flash-preview' },
       { apiVersion: 'v1beta' }
     );
 
@@ -83,8 +83,8 @@ export async function POST(request: NextRequest) {
           { "id": 1, "title": "Specific Scene Name", "description": "Analysis", "tags": ["A", "B"], "color": "primary", "signatureRecordId": 12345 }
         ],
         "signatureRecordId": 12345,
-        "malePrompt": "Illustrated artistic portrait of a male music listener who embodies this collection's vibe. Style: graphic novel cover art, painterly, not photorealistic. No text.",
-        "femalePrompt": "Illustrated artistic portrait of a female music listener who embodies this collection's vibe. Style: graphic novel cover art, painterly, not photorealistic. No text."
+        "malePrompt": "Illustrated artistic portrait of a male music listener who embodies this collection's vibe. Mood: confident, passionate, absorbed in music — never sad, melancholic or brooding. Style: graphic novel cover art, painterly, not photorealistic. No text.",
+        "femalePrompt": "Illustrated artistic portrait of a female music listener who embodies this collection's vibe. Mood: confident, passionate, absorbed in music — never sad, melancholic or brooding. Style: graphic novel cover art, painterly, not photorealistic. No text."
       }
 
       For signatureRecordId: the single record that best crystallises the entire persona. Must be an id from the collection snapshot.

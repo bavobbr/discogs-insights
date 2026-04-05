@@ -20,9 +20,27 @@ const newsreader = Newsreader({
   weight: ['400', '600', '700']
 });
 
+const BASE_URL = 'https://vinyl-pulse.app';
+
 export const metadata: Metadata = {
   title: 'Vinyl Pulse',
   description: 'A deep groove crate digger dashboard.',
+  metadataBase: new URL(BASE_URL),
+  openGraph: {
+    siteName: 'Vinyl Pulse',
+    type: 'website',
+    locale: 'en_US',
+    url: BASE_URL,
+    title: 'Vinyl Pulse',
+    description: 'A deep groove crate digger dashboard.',
+    images: [{ url: '/api/og', width: 1200, height: 630, alt: 'Vinyl Pulse' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Vinyl Pulse',
+    description: 'A deep groove crate digger dashboard.',
+    images: ['/api/og'],
+  },
 };
 
 export default function RootLayout({

@@ -59,7 +59,7 @@ export default function PersonaClient() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          releases: releases.slice(0, 100),
+          releases: releases.slice(0, 300),
           username: user?.username || 'guest',
         }),
       });

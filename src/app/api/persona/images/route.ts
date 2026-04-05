@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
     const imageModel = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-image-preview' });
 
     const FALLBACK_PROMPTS: Record<string, string> = {
-      male:   'Illustrated artistic portrait of a male music lover. Abstract, painterly style. No text.',
-      female: 'Illustrated artistic portrait of a female music lover. Abstract, painterly style. No text.',
+      male:   'Illustrated artistic portrait of a male music lover. Mood: confident, passionate, absorbed in music — never sad or brooding. Abstract, painterly style. No text.',
+      female: 'Illustrated artistic portrait of a female music lover. Mood: confident, passionate, absorbed in music — never sad or brooding. Abstract, painterly style. No text.',
     };
 
     const generateImage = async (prompt: string, suffix: string): Promise<string | null> => {
