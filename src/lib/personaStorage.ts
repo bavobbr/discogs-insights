@@ -51,7 +51,21 @@ export async function readPersonaData(username: string): Promise<PersonaData | n
     return kv.get<PersonaData>(`${KV_PREFIX}${username}`);
   }
 
-  // Filesystem fallback
+  if (useBlob) {
+    try {
+      const { list } = await import('@vercel/blob');
+      const { blobs } = await list({ prefix: `${BLOB_FOLDER}/${username}.json` });
+      const blob = blobs.find(b => b.pathname === `${BLOB_FOLDER}/${username}.json`);
+      if (!blob) return null;
+      const res = await fetch(blob.url);
+      if (!res.ok) return null;
+      return await res.json() as PersonaData;
+    } catch {
+      return null;
+    }
+  }
+
+  // Filesystem fallback (local dev only)
   try {
     const raw = await fs.readFile(path.join(LOCAL_DATA_DIR, `${username}.json`), 'utf8');
     return JSON.parse(raw) as PersonaData;
@@ -68,7 +82,18 @@ export async function writePersonaData(username: string, data: PersonaData): Pro
     return;
   }
 
-  // Filesystem fallback
+  if (useBlob) {
+    const { put } = await import('@vercel/blob');
+    await put(`${BLOB_FOLDER}/${username}.json`, JSON.stringify(data), {
+      access: 'public',
+      contentType: 'application/json',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+    return;
+  }
+
+  // Filesystem fallback (local dev only)
   await fs.mkdir(LOCAL_DATA_DIR, { recursive: true });
   await fs.writeFile(
     path.join(LOCAL_DATA_DIR, `${username}.json`),
