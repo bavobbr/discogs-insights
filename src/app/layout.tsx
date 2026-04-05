@@ -43,6 +43,18 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Vinyl Pulse',
+  url: BASE_URL,
+  description: 'AI-powered analytics dashboard for your Discogs vinyl collection. Explore your sonic persona, genre matrix, top artists, decade heatmap, and vault.',
+  applicationCategory: 'MusicApplication',
+  operatingSystem: 'All',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  author: { '@type': 'Person', name: 'Bavo Bruylandt' },
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -54,6 +66,10 @@ export default function RootLayout({
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
         <meta name="theme-color" content="#131313" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body className={`${inter.variable} ${newsreader.variable} bg-surface text-on-surface font-body selection:bg-primary-container selection:text-on-primary-container min-h-screen container-3d`}>
         <div className="paper-grain"></div>

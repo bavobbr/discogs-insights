@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
 import { trackLogout } from '@/lib/analytics';
+import { AboutSheet } from './AboutSheet';
 
 export function TopAppBar() {
   const pathname = usePathname();
@@ -17,6 +18,7 @@ export function TopAppBar() {
 
   const isAnySyncing = isSyncing || isSyncingVault || isSyncingMasters;
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const handleRefresh = () => {
     // Start sync with force=true to bypass cache
@@ -45,6 +47,7 @@ export function TopAppBar() {
   };
 
   return (
+    <>
     <header className="fixed top-0 w-full z-50 bg-[#131313]/80 backdrop-blur-xl border-b border-[#E5E2E1]/5 text-shadow-sm">
       <div className="max-w-screen-2xl mx-auto flex justify-between items-center px-6 py-3">
         <div className="flex items-center gap-8">
@@ -126,8 +129,16 @@ export function TopAppBar() {
             )}
           </div>
 
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            title="About Vinyl Pulse"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-[#E5E2E1]/40 hover:text-[#E5E2E1]/80 hover:bg-white/5 transition-all active:scale-90"
+          >
+            <span className="material-symbols-outlined text-lg">info</span>
+          </button>
+
           <div className="relative">
-            <button 
+            <button
               onClick={() => setIsProfileOpen(!isProfileOpen)}
               className="w-8 h-8 rounded-full bg-surface-container-high border border-[#E5E2E1]/10 overflow-hidden ring-2 ring-primary/20 hover:ring-primary transition-all relative group"
             >
@@ -218,6 +229,8 @@ export function TopAppBar() {
         )}
       </div>
     </header>
+    {isAboutOpen && <AboutSheet onClose={() => setIsAboutOpen(false)} />}
+    </>
   );
 }
 
