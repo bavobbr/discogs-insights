@@ -1,8 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getRequestToken } from '@/lib/oauth';
 import { cookies } from 'next/headers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // If a valid session already exists, skip OAuth entirely
+  const cookieStore = await cookies();
+  const existing = cookieStore.get('discogs_session')?.value;
+  if (existing) {
+    try {
+      const parsed = JSON.parse(existing);
+      if (parsed.token && parsed.username) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch {
+      // malformed cookie — fall through to fresh OAuth
+    }
+  }
+
   try {
     const { oauth_token, oauth_token_secret } = await getRequestToken();
 
