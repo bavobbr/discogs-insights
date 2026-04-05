@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
+import { trackLogout } from '@/lib/analytics';
 
 export function TopAppBar() {
   const pathname = usePathname();
@@ -150,7 +151,7 @@ export function TopAppBar() {
                       <p className="text-sm font-headline font-bold text-primary truncate">{user.username}</p>
                     </div>
                     <button 
-                      onClick={() => logout()}
+                      onClick={() => { trackLogout(); logout(); }}
                       className="w-full flex items-center gap-3 px-4 py-2 text-left text-xs font-bold text-[#E5E2E1]/70 hover:text-white hover:bg-white/5 rounded-lg transition-all"
                     >
                       <span className="material-symbols-outlined text-sm">logout</span>

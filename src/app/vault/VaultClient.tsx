@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
 import { DiscogsRelease } from '@/lib/discogs';
@@ -8,6 +8,7 @@ import { VaultPedestal } from '@/components/visualizations/VaultPedestal';
 import { RecordOverlay } from '@/components/ui/RecordOverlay';
 import { LightweightRelease } from '@/components/ui/RecentGrid';
 import { ImprintAnalytics } from '@/components/analytics/ImprintAnalytics';
+import { trackVaultScanComplete, trackVaultRecordOpen } from '@/lib/analytics';
 
 export function VaultClient() {
   const {
@@ -22,6 +23,7 @@ export function VaultClient() {
     isAuthReady,
   } = useDiscogsSync();
   const [selectedRelease, setSelectedRelease] = React.useState<DiscogsRelease | null>(null);
+  const vaultScannedRef = useRef(false);
 
   // Ensure releases are loaded (mirrors pattern used by Dashboard/Genre/Decades)
   useEffect(() => {
@@ -38,6 +40,13 @@ export function VaultClient() {
       syncVaultData(allIds);
     }
   }, [releases, isSyncing, isSyncingVault, syncVaultData, vaultMetadata]);
+
+  useEffect(() => {
+    if (!isSyncingVault && vaultTotalCount > 0 && !vaultScannedRef.current) {
+      vaultScannedRef.current = true;
+      trackVaultScanComplete(vaultTotalCount);
+    }
+  }, [isSyncingVault, vaultTotalCount]);
 
   // Derived Categories
   const grails = useMemo(() => {
@@ -76,6 +85,11 @@ export function VaultClient() {
       })
       .slice(0, 8);
   }, [releases, grails, vaultMetadata]);
+
+  const openRelease = (release: DiscogsRelease, section: string) => {
+    setSelectedRelease(release);
+    trackVaultRecordOpen(release.id, release.basic_information.title, section);
+  };
 
   // Utility to map DiscogsRelease to LightweightRelease for the overlay
   const mapToLightweight = (r: DiscogsRelease): LightweightRelease => ({
@@ -149,7 +163,7 @@ export function VaultClient() {
                 rank={i + 1}
                 details={vaultMetadata[release.id]}
                 variant="large"
-                onClick={() => setSelectedRelease(release)}
+                onClick={() => openRelease(release, 'grails_top3')}
               />
             ))}
           </div>
@@ -157,13 +171,13 @@ export function VaultClient() {
           {grails.length > 3 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 px-4 lg:px-24">
               {grails.slice(3, 11).map((release, i) => (
-                <VaultPedestal 
-                  key={release.id} 
-                  release={release} 
+                <VaultPedestal
+                  key={release.id}
+                  release={release}
                   rank={i + 4}
                   details={vaultMetadata[release.id]}
                   variant="small"
-                  onClick={() => setSelectedRelease(release)}
+                  onClick={() => openRelease(release, 'grails')}
                 />
               ))}
             </div>
@@ -187,7 +201,7 @@ export function VaultClient() {
                       const d = vaultMetadata[c.id];
                       const ratio = d ? (d.community.want / d.community.have).toFixed(1) : '?';
                       return (
-                        <div key={c.id} className="flex items-center gap-6 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
+                        <div key={c.id} className="flex items-center gap-6 group cursor-pointer" onClick={() => openRelease(c, 'most_coveted')}>
                           <div className="w-16 h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
                              {c.basic_information.cover_image && (
                                <Image 
@@ -223,7 +237,7 @@ export function VaultClient() {
             <div className="space-y-6">
                 {hiddenGems.length > 0 ? (
                   hiddenGems.map(c => (
-                    <div key={c.id} className="flex items-center gap-3 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
+                    <div key={c.id} className="flex items-center gap-3 group cursor-pointer" onClick={() => openRelease(c, 'hidden_gems')}>
                       <div className="w-10 h-10 sm:w-16 sm:h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
                          {c.basic_information.cover_image && (
                            <Image

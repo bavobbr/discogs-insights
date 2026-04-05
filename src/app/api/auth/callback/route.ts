@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     cookieStore.delete('discogs_request_token_secret');
 
     // Redirect to home or vault
-    return NextResponse.redirect(new URL('/vault', request.url));
+    return NextResponse.redirect(new URL('/?oauth_success=1', request.url));
   } catch (error) {
     console.error('OAuth Callback Error:', error);
     return NextResponse.json({ error: 'Failed to complete authentication' }, { status: 500 });

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { DiscogsRelease } from '@/lib/discogs';
+import { trackCrateDigOpen, trackDiscogsLinkClick } from '@/lib/analytics';
 
 export interface CrateDiggingOverlayProps {
   title?: string;
@@ -21,6 +22,7 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    trackCrateDigOpen(subtitle, releases.length);
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -194,6 +196,7 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
               href={`https://www.discogs.com/release/${currentRelease?.id}`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackDiscogsLinkClick(currentRelease?.id, currentRelease?.basic_information.title)}
               className="px-6 py-2 bg-primary text-black font-headline font-black uppercase text-xs tracking-widest rounded-full hover:bg-primary/80 transition-colors"
             >
               DISCOGS INFO

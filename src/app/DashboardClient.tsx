@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { useDiscogsSync } from '@/context/DiscogsSyncContext';
 import { RecentGrid } from '@/components/ui/RecentGrid';
+import { trackCollectionLoadComplete } from '@/lib/analytics';
 
 export function DashboardClient() {
   const { releases, startSync, totalItems, isSyncing, progress, isAuthReady, collectionValue } = useDiscogsSync();
@@ -12,6 +13,14 @@ export function DashboardClient() {
       startSync();
     }
   }, [isAuthReady, startSync]);
+
+  const syncedRef = useRef(false);
+  useEffect(() => {
+    if (!isSyncing && totalItems > 0 && !syncedRef.current) {
+      syncedRef.current = true;
+      trackCollectionLoadComplete(totalItems);
+    }
+  }, [isSyncing, totalItems]);
 
   const lightweightReleases = useMemo(() => {
     return [...releases]

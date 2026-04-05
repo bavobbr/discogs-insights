@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { CrateCard } from './CrateCard';
 import { RecordOverlay } from './RecordOverlay';
+import { trackRecordDetailOpen, trackInfiniteScrollLoad } from '@/lib/analytics';
 
 export interface LightweightRelease {
   id: number;
@@ -29,6 +30,7 @@ export function RecentGrid({ releases, initialCount = 20, step = 10 }: { release
       if (prev >= releases.length) return prev;
       const nextCount = Math.min(prev + step, releases.length);
       console.log(`[RecentGrid] Infinite Scroll load: ${prev} -> ${nextCount} (Total: ${releases.length})`);
+      trackInfiniteScrollLoad(nextCount);
       return nextCount;
     });
   }, [releases.length, step]);
@@ -74,7 +76,7 @@ export function RecentGrid({ releases, initialCount = 20, step = 10 }: { release
             genres={release.genres}
             styles={release.styles}
             offset={i % 2 !== 0}
-            onClick={() => setSelectedRelease(release)}
+            onClick={() => { setSelectedRelease(release); trackRecordDetailOpen(release.id, release.title); }}
           />
         ))}
       </div>

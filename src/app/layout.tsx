@@ -4,6 +4,8 @@ import './globals.css';
 import { Providers } from '@/providers';
 import { Analytics } from '@vercel/analytics/next';
 import Script from 'next/script';
+import { Suspense } from 'react';
+import { OAuthSuccessEvent } from '@/components/analytics/OAuthSuccessEvent';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -42,6 +44,7 @@ export default function RootLayout({
             {children}
           </Providers>
         </div>
+        <Suspense><OAuthSuccessEvent /></Suspense>
         <Analytics />
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-1SS4X620KZ" strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">{`

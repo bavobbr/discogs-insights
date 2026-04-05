@@ -6,6 +6,7 @@ import { DiscogsRelease } from '@/lib/discogs';
 import { TopAppBar } from '@/components/layout/Navigation';
 import { CrateDiggingOverlay } from '@/components/ui/CrateDiggingOverlay';
 import Image from 'next/image';
+import { trackPersonaGenerated, trackPersonaRefreshed } from '@/lib/analytics';
 
 interface MicroScene {
   id: number;
@@ -68,6 +69,10 @@ export default function PersonaClient() {
       const data: PersonaData = await res.json();
       setPersona(data);
       setIsLoadingText(false);
+
+      if (!data.cached) {
+        trackPersonaGenerated(user?.username || 'guest');
+      }
 
       if (data.cached && data.imagesReady) return;
       generateImages(user?.username || 'guest');
@@ -226,6 +231,7 @@ export default function PersonaClient() {
                     <button
                       onClick={() => {
                         if (!persona!.cached || Date.now() - generationDate!.getTime() > 60 * 60 * 1000) {
+                          trackPersonaRefreshed();
                           hasTriggered.current = false;
                           setPersona(null);
                           generatePersona();
