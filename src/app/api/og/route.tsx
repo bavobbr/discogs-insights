@@ -12,13 +12,15 @@ const WHITE    = '#E5E2E1';
 const MUTED    = 'rgba(229,226,225,0.45)';
 const CARD_BG  = '#1E1E1E';
 
-async function loadFont(weight: 400 | 700 | 900): Promise<ArrayBuffer> {
-  const axes = `ital,opsz,wght@0,14..32,${weight}`;
-  const url = `https://fonts.googleapis.com/css2?family=Inter:${axes}&display=swap`;
-  const css = await fetch(url).then(r => r.text());
-  const match = css.match(/src: url\(([^)]+)\) format\('woff2'\)/);
-  if (!match) throw new Error('Could not parse Google Fonts CSS');
-  return fetch(match[1]).then(r => r.arrayBuffer());
+// Cache font buffers across requests within the same edge instance
+const fontBufferCache: Partial<Record<700 | 900, ArrayBuffer>> = {};
+
+async function loadFont(weight: 700 | 900): Promise<ArrayBuffer> {
+  if (fontBufferCache[weight]) return fontBufferCache[weight]!;
+  const url = `${BASE}/fonts/inter-${weight}.woff2`;
+  const buffer = await fetch(url).then(r => r.arrayBuffer());
+  fontBufferCache[weight] = buffer;
+  return buffer;
 }
 
 export async function GET(request: NextRequest) {
