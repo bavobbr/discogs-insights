@@ -81,24 +81,27 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
   }
 
   const overlay = (
-    <div className="fixed inset-0 z-[60] overflow-y-auto">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[60] pointer-events-none">
+      {/* Backdrop — handles click-outside-to-close */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-2xl transition-opacity animate-in fade-in duration-500"
+        className="fixed inset-0 bg-black/80 backdrop-blur-2xl transition-opacity animate-in fade-in duration-500 pointer-events-auto"
         onClick={onClose}
       />
 
+      {/* Close button — fixed, always reachable on mobile regardless of scroll */}
+      <button
+        onClick={onClose}
+        className="fixed top-4 right-4 z-[70] w-10 h-10 bg-black/40 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white shadow-xl transition-all group pointer-events-auto"
+        aria-label="Close overlay"
+      >
+        <span className="material-symbols-outlined text-[20px] opacity-70 group-hover:opacity-100 transition-opacity">close</span>
+      </button>
+
+      {/* Scrollable content — outer wrapper is pointer-events-none, inner content opts back in */}
+      <div className="fixed inset-0 z-[65] overflow-y-auto pointer-events-none">
       {/* Centering wrapper — min-h-full so short content stays centered, scrolls when tall */}
-      <div className="relative min-h-full flex items-center justify-center p-6 pt-16 sm:p-12">
+      <div className="relative min-h-full flex items-center justify-center p-6 pt-16 sm:p-12 pointer-events-auto">
       <div className="relative w-full max-w-lg z-10 flex flex-col items-center">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute -top-12 right-0 md:-right-4 w-10 h-10 bg-black/40 hover:bg-white/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white shadow-xl transition-all z-50 group"
-          aria-label="Close overlay"
-        >
-          <span className="material-symbols-outlined text-[20px] opacity-70 group-hover:opacity-100 transition-opacity">close</span>
-        </button>
 
         {/* Header */}
         <div className="text-center mb-8">
@@ -212,6 +215,7 @@ export function CrateDiggingOverlay({ title = "Crate Digging", subtitle, release
             {activeIndex + 1} / {releases.length}
           </span>
         </div>
+      </div>
       </div>
       </div>
     </div>

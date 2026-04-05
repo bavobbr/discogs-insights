@@ -78,7 +78,7 @@ export function DecadeHeatmap({ data }: { data: DecadeData[] }) {
               <div
                 key={decade.id}
                 onClick={() => openDecade(decade)}
-                className="relative bg-surface p-5 flex flex-col justify-between aspect-square col-span-2 group active:scale-95 cursor-pointer transition-transform overflow-hidden rounded-md border border-surface-container-high hover:border-primary/50"
+                className="relative bg-surface p-5 flex flex-col justify-between aspect-[2/1] col-span-2 group active:scale-95 cursor-pointer transition-transform overflow-hidden rounded-md border border-surface-container-high hover:border-primary/50"
               >
 
                 {renderBackgroundMosaic(decade)}

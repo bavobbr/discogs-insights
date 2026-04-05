@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GenreStyleData, DiscogsRelease } from '@/lib/discogs';
 import { CrateDiggingOverlay } from '@/components/ui/CrateDiggingOverlay';
 
@@ -16,6 +16,12 @@ export function GenreStyleMatrix({ data }: { data: GenreStyleData[] }) {
   const [selectedGenre, setSelectedGenre] = useState<ExtendedGenreData | null>(null);
   const [hoveredGenre, setHoveredGenre] = useState<ExtendedGenreData | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<{name: string, count: number, releases: DiscogsRelease[]} | null>(null);
+
+  useEffect(() => {
+    if (selectedGenre) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedGenre]);
 
   const total = data.reduce((sum, d) => sum + d.count, 0);
   const R_INNER = 40;

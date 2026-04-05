@@ -73,7 +73,7 @@ export function DashboardClient() {
             </div>
           </div>
 
-          <div className="hidden lg:flex flex-col border-l-2 border-tertiary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300 relative overflow-hidden">
+          <div className="flex flex-col border-l-2 border-tertiary pl-6 py-4 bg-surface-container-low/30 hover:bg-surface-container-low transition-colors duration-300 relative overflow-hidden">
             <span className="font-headline font-bold uppercase text-xs text-on-surface-variant tracking-tighter mb-2">Data Integrity</span>
             <div className="flex items-center gap-3">
               <span className="font-headline font-black text-4xl tracking-tighter text-tertiary">
@@ -98,7 +98,7 @@ export function DashboardClient() {
       <section className="mb-12">
         <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="font-headline font-black text-4xl lg:text-5xl uppercase tracking-tighter leading-none">Recent Additions</h2>
+            <h2 className="font-headline font-black text-3xl sm:text-4xl lg:text-5xl uppercase tracking-tighter leading-none">Recent Additions</h2>
             <p className="font-body italic text-lg text-on-surface-variant mt-2">Freshly unboxed and cataloged in your rotation</p>
           </div>
         </div>

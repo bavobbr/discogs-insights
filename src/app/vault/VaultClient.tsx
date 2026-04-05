@@ -223,15 +223,15 @@ export function VaultClient() {
             <div className="space-y-6">
                 {hiddenGems.length > 0 ? (
                   hiddenGems.map(c => (
-                    <div key={c.id} className="flex items-center gap-6 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
-                      <div className="w-16 h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
+                    <div key={c.id} className="flex items-center gap-3 group cursor-pointer" onClick={() => setSelectedRelease(c)}>
+                      <div className="w-10 h-10 sm:w-16 sm:h-16 relative flex-shrink-0 bg-surface-container overflow-hidden rounded-sm group-hover:scale-105 transition-transform">
                          {c.basic_information.cover_image && (
-                           <Image 
-                             src={c.basic_information.cover_image} 
-                             alt="" 
+                           <Image
+                             src={c.basic_information.cover_image}
+                             alt=""
                              fill
                              sizes="64px"
-                             className="object-cover opacity-40 group-hover:opacity-80 transition-opacity" 
+                             className="object-cover opacity-40 group-hover:opacity-80 transition-opacity"
                            />
                          )}
                       </div>
@@ -239,9 +239,9 @@ export function VaultClient() {
                          <p className="font-headline font-bold text-sm uppercase truncate text-on-surface">{c.basic_information.title}</p>
                          <p className="font-body text-xs italic text-on-surface-variant truncate">{c.basic_information.artists[0]?.name}</p>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5 flex-shrink-0">
                          {[...Array(Math.max(1, c.rating || 1))].map((_, i) => (
-                           <span key={i} className="material-symbols-outlined text-[12px] text-tertiary">star</span>
+                           <span key={i} className="material-symbols-outlined text-[10px] leading-none text-tertiary">star</span>
                          ))}
                       </div>
                     </div>

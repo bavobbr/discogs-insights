@@ -139,7 +139,7 @@ export default function PersonaClient() {
                     <span className="h-[2px] w-12 bg-primary" />
                     <span className="font-label font-bold text-xs tracking-widest uppercase text-secondary">ARCHIVE NO. 842-EP</span>
                   </div>
-                  <h2 className="font-headline font-black text-5xl md:text-7xl uppercase tracking-tighter leading-none max-w-3xl">
+                  <h2 className="font-headline font-black text-3xl sm:text-5xl md:text-7xl uppercase tracking-tighter leading-none max-w-3xl break-words">
                     {persona!.title}
                   </h2>
                 </div>
@@ -222,24 +222,26 @@ export default function PersonaClient() {
                   <button className="bg-primary-container text-on-primary-container px-8 py-4 font-label font-bold uppercase text-[10px] tracking-[0.2em] rounded-sm hover:opacity-90 transition-all active:scale-95 shadow-xl shadow-primary/10">
                     SHARE IDENTITY
                   </button>
-                  <button
-                    onClick={() => {
-                      if (!persona!.cached || Date.now() - generationDate!.getTime() > 60 * 60 * 1000) {
-                        hasTriggered.current = false;
-                        setPersona(null);
-                        generatePersona();
-                      }
-                    }}
-                    disabled={!!persona!.cached && timeSinceGen < 60}
-                    className="border border-outline-variant/30 text-on-surface px-8 py-4 font-label font-bold uppercase text-[10px] tracking-[0.2em] rounded-sm hover:bg-surface-bright transition-all disabled:opacity-30 disabled:cursor-not-allowed group relative"
-                  >
-                    <span className="group-disabled:opacity-40">REFRESH ANALYSIS</span>
-                    {persona!.cached && timeSinceGen < 60 && (
-                      <span className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 bg-surface-container-highest p-2 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity rounded-sm pointer-events-none">
-                        Cooldown active. {60 - timeSinceGen}m remaining.
-                      </span>
-                    )}
-                  </button>
+                  {user && (
+                    <button
+                      onClick={() => {
+                        if (!persona!.cached || Date.now() - generationDate!.getTime() > 60 * 60 * 1000) {
+                          hasTriggered.current = false;
+                          setPersona(null);
+                          generatePersona();
+                        }
+                      }}
+                      disabled={!!persona!.cached && timeSinceGen < 60}
+                      className="border border-outline-variant/30 text-on-surface px-8 py-4 font-label font-bold uppercase text-[10px] tracking-[0.2em] rounded-sm hover:bg-surface-bright transition-all disabled:opacity-30 disabled:cursor-not-allowed group relative"
+                    >
+                      <span className="group-disabled:opacity-40">REFRESH ANALYSIS</span>
+                      {persona!.cached && timeSinceGen < 60 && (
+                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 bg-surface-container-highest p-2 text-[8px] opacity-0 group-hover:opacity-100 transition-opacity rounded-sm pointer-events-none">
+                          Cooldown active. {60 - timeSinceGen}m remaining.
+                        </span>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </section>
