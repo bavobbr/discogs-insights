@@ -233,7 +233,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     // serializes all Discogs API calls at 1200ms intervals per user.
     // We just fire all requests; they'll queue server-side and resolve in order.
 
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 5;
     try {
       let batch: Record<number, number> = {};
       let batchCount = 0;
@@ -377,7 +377,7 @@ export function DiscogsSyncProvider({ children }: { children: React.ReactNode })
     setVaultScannedCount(0);
     setVaultTotalCount(candidateIds.length);
 
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 5;
     try {
       let batch: Record<number, ReleaseDetails> = {};
       let batchCount = 0;

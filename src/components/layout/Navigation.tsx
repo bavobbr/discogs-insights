@@ -179,6 +179,32 @@ export function TopAppBar() {
         </div>
       </div>
 
+      {/* Mobile Sync Banner — lg:hidden */}
+      {isAnySyncing && (
+        <div className="lg:hidden px-6 py-1.5 flex items-center gap-3 bg-surface/60 backdrop-blur-sm border-t border-white/5">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
+          <span className="font-headline font-bold text-[9px] uppercase tracking-widest text-on-surface-variant truncate">
+            {isSyncing
+              ? `Loading collection · ${syncedCount} / ${totalItems} records`
+              : isSyncingMasters
+              ? `Enriching release dates · ${masterSyncedCount} / ${masterTotalCount}`
+              : `Scanning vault · ${vaultScannedCount} / ${vaultTotalCount}`}
+          </span>
+          <div className="flex-1 h-0.5 bg-surface-container-highest rounded-full overflow-hidden min-w-[40px]">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${isSyncing ? 'bg-primary' : isSyncingMasters ? 'bg-secondary' : 'bg-[#A855F7]'}`}
+              style={{
+                width: `${isSyncing
+                  ? progress
+                  : isSyncingMasters
+                  ? (masterTotalCount > 0 ? (masterSyncedCount / masterTotalCount) * 100 : 0)
+                  : (vaultTotalCount > 0 ? (vaultScannedCount / vaultTotalCount) * 100 : 0)}%`
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* The Pulse Line (Global Progress indicator) */}
       <div className="absolute bottom-0 left-0 w-full h-[1px] bg-transparent overflow-hidden">
         {isAnySyncing && (
